@@ -1,11 +1,20 @@
 ﻿function Format-Maa-Policy {
     Param ($Policy)
 
-    $bodytext = '{"AttestationPolicy": "' + $Policy + '"}'
-
+    # Create the header
     $header = Encode-Base64Url '{"alg":"none"}'
+
+    # Create the body
+
+    # By design, policy is double base64url encoded
+    # Base64url encode #1
+    $encodedpolicy =  Encode-Base64Url $Policy
+    $bodytext = '{"AttestationPolicy": "' + $encodedpolicy + '"}'
+
+    # Base64url encode #2
     $body =   Encode-Base64Url $bodytext
 
+    # Return unsigned JWT
     return "$header.$body."
 }
 

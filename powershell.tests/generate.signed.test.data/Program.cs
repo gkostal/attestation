@@ -29,7 +29,7 @@
 
                 var exportedCert = cert.Export(X509ContentType.Cert);
                 string jwkToAdd = $"{{\"kty\":\"RSA\", \"x5c\":[\"{System.Convert.ToBase64String(exportedCert)}\"]}}";
-                string addCertBody = $"{{\"aas-policyCertificate\": {jwkToAdd}}}";
+                string addCertBody = $"{{\"maa-policyCertificate\": {jwkToAdd}}}";
                 string certAddJwt = JwtUtils.GenerateSignedJsonWebToken(addCertBody, signingCert);
                 Console.WriteLine($"Creating signed certificate file: cert{i}.signed.txt");
                 File.WriteAllText($"{resultsDir}\\cert{i}.signed.txt", certAddJwt);

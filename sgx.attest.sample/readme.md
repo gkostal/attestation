@@ -99,45 +99,61 @@ host/genquote_host ./enclave/genquote_enclave.securityversion.signed    enclave.
 Here is an example of what the output of ```./runall.sh``` should look like:
 
 ```
-greg@acc-ubuntu-1:~/src/aas/openenclave/maa-samples/validatequotes$ ./runall.sh 
-05/02/2020 13:47:57 : 
-05/02/2020 13:47:57 : Validating file '../genquotes/quotes/enclave.info.debug.json' against attestation provider 'tradewinds.us.test.attest.azure.net' with include details 'False'
-05/02/2020 13:47:57 : 
-05/02/2020 13:48:00 : IsDebuggable check:      True
-05/02/2020 13:48:00 : MRENCLAVE check:         True
-05/02/2020 13:48:00 : MRSIGNER check:          True
-05/02/2020 13:48:00 : ProductID check:         True
-05/02/2020 13:48:00 : Security Version check:  True
-05/02/2020 13:48:00 : Enclave Held Data check: True
-05/02/2020 13:48:00 : 
-05/02/2020 13:48:01 : 
-05/02/2020 13:48:01 : Validating file '../genquotes/quotes/enclave.info.release.json' against attestation provider 'tradewinds.us.test.attest.azure.net' with include details 'False'
-05/02/2020 13:48:01 : 
-05/02/2020 13:48:03 : IsDebuggable check:      True
-05/02/2020 13:48:03 : MRENCLAVE check:         True
-05/02/2020 13:48:03 : MRSIGNER check:          True
-05/02/2020 13:48:03 : ProductID check:         True
-05/02/2020 13:48:03 : Security Version check:  True
-05/02/2020 13:48:03 : Enclave Held Data check: True
-05/02/2020 13:48:03 : 
-05/02/2020 13:48:04 : 
-05/02/2020 13:48:04 : Validating file '../genquotes/quotes/enclave.info.prodid.json' against attestation provider 'tradewinds.us.test.attest.azure.net' with include details 'False'
-05/02/2020 13:48:04 : 
-05/02/2020 13:48:07 : IsDebuggable check:      True
-05/02/2020 13:48:07 : MRENCLAVE check:         True
-05/02/2020 13:48:07 : MRSIGNER check:          True
-05/02/2020 13:48:07 : ProductID check:         True
-05/02/2020 13:48:07 : Security Version check:  True
-05/02/2020 13:48:07 : Enclave Held Data check: True
-05/02/2020 13:48:07 : 
-05/02/2020 13:48:08 : 
-05/02/2020 13:48:08 : Validating file '../genquotes/quotes/enclave.info.securityversion.json' against attestation provider 'tradewinds.us.test.attest.azure.net' with include details 'False'
-05/02/2020 13:48:08 : 
-05/02/2020 13:48:11 : IsDebuggable check:      True
-05/02/2020 13:48:11 : MRENCLAVE check:         True
-05/02/2020 13:48:11 : MRSIGNER check:          True
-05/02/2020 13:48:11 : ProductID check:         True
-05/02/2020 13:48:11 : Security Version check:  True
-05/02/2020 13:48:11 : Enclave Held Data check: True
-05/02/2020 13:48:11 : 
+greg@acc-ubuntu-1:~/src/attestation/sgx.attest.sample/validatequotes$ ./runall.sh 
+05/03/2020 19:15:40 : 
+05/03/2020 19:15:40 : Validating file '../genquotes/quotes/enclave.info.debug.json' against attestation provider 'tradewinds.us.test.attest.azure.net' with include details 'False'
+05/03/2020 19:15:40 : 
+05/03/2020 19:15:42 : Please sign into your AAD account.
+05/03/2020 19:15:42 : To sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code ELZ62PNV7 to authenticate.
+05/03/2020 19:15:42 : 
+
+05/03/2020 19:16:09 : JWT signature validation:           True
+05/03/2020 19:16:09 : JWT issuer claim validation:        True
+05/03/2020 19:16:09 : JWT signing cert issuer validation: True
+05/03/2020 19:16:09 : IsDebuggable check:                 True
+05/03/2020 19:16:09 : MRENCLAVE check:                    True
+05/03/2020 19:16:09 : MRSIGNER check:                     True
+05/03/2020 19:16:09 : ProductID check:                    True
+05/03/2020 19:16:09 : Security Version check:             True
+05/03/2020 19:16:09 : Enclave Held Data check:            True
+05/03/2020 19:16:09 : 
+05/03/2020 19:16:10 : 
+05/03/2020 19:16:10 : Validating file '../genquotes/quotes/enclave.info.release.json' against attestation provider 'tradewinds.us.test.attest.azure.net' with include details 'False'
+05/03/2020 19:16:10 : 
+05/03/2020 19:16:14 : JWT signature validation:           True
+05/03/2020 19:16:14 : JWT issuer claim validation:        True
+05/03/2020 19:16:14 : JWT signing cert issuer validation: True
+05/03/2020 19:16:14 : IsDebuggable check:                 True
+05/03/2020 19:16:14 : MRENCLAVE check:                    True
+05/03/2020 19:16:14 : MRSIGNER check:                     True
+05/03/2020 19:16:14 : ProductID check:                    True
+05/03/2020 19:16:14 : Security Version check:             True
+05/03/2020 19:16:14 : Enclave Held Data check:            True
+05/03/2020 19:16:14 : 
+05/03/2020 19:16:15 : 
+05/03/2020 19:16:15 : Validating file '../genquotes/quotes/enclave.info.prodid.json' against attestation provider 'tradewinds.us.test.attest.azure.net' with include details 'False'
+05/03/2020 19:16:15 : 
+05/03/2020 19:16:20 : JWT signature validation:           True
+05/03/2020 19:16:20 : JWT issuer claim validation:        True
+05/03/2020 19:16:20 : JWT signing cert issuer validation: True
+05/03/2020 19:16:20 : IsDebuggable check:                 True
+05/03/2020 19:16:20 : MRENCLAVE check:                    True
+05/03/2020 19:16:20 : MRSIGNER check:                     True
+05/03/2020 19:16:20 : ProductID check:                    True
+05/03/2020 19:16:20 : Security Version check:             True
+05/03/2020 19:16:20 : Enclave Held Data check:            True
+05/03/2020 19:16:20 : 
+05/03/2020 19:16:21 : 
+05/03/2020 19:16:21 : Validating file '../genquotes/quotes/enclave.info.securityversion.json' against attestation provider 'tradewinds.us.test.attest.azure.net' with include details 'False'
+05/03/2020 19:16:21 : 
+05/03/2020 19:16:25 : JWT signature validation:           True
+05/03/2020 19:16:25 : JWT issuer claim validation:        True
+05/03/2020 19:16:25 : JWT signing cert issuer validation: True
+05/03/2020 19:16:25 : IsDebuggable check:                 True
+05/03/2020 19:16:25 : MRENCLAVE check:                    True
+05/03/2020 19:16:25 : MRSIGNER check:                     True
+05/03/2020 19:16:25 : ProductID check:                    True
+05/03/2020 19:16:25 : Security Version check:             True
+05/03/2020 19:16:25 : Enclave Held Data check:            True
+05/03/2020 19:16:25 : 
 ```

@@ -40,7 +40,7 @@ The MAA service is called to perform attestation by the following call in the [M
     var response = await theHttpClient.SendAsync(request);
 ```
 
-The verification that the MAA service JWT claims match the initial parsed report data is performed by the following method in the [EnclaveInfo.cs](./validatequotes/EnclaveInfo.cs#L33) file:
+The verification that the MAA service JWT claims match the initial parsed report data is performed by the following method in the [EnclaveInfo.cs](./validatequotes/EnclaveInfo.cs#L31) file:
 ```
     public void CompareToMaaServiceJwtToken(string serviceJwtToken, bool includeDetails)
 ```

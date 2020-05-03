@@ -106,7 +106,6 @@ greg@acc-ubuntu-1:~/src/attestation/sgx.attest.sample/validatequotes$ ./runall.s
 05/03/2020 19:15:42 : Please sign into your AAD account.
 05/03/2020 19:15:42 : To sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code ELZ62PNV7 to authenticate.
 05/03/2020 19:15:42 : 
-
 05/03/2020 19:16:09 : JWT signature validation:           True
 05/03/2020 19:16:09 : JWT issuer claim validation:        True
 05/03/2020 19:16:09 : JWT signing cert issuer validation: True

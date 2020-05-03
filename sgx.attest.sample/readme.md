@@ -11,6 +11,7 @@ The components used in the sample code are outlined in the following diagram.  T
 1. ```genquote_enclave``` - This application is an SGX enclave created via the Open Enclave SDK.  It exposes one ecall to retrieve a remote quote and enclave held data.
 1. ```validatequotes``` - This application consumes the JSON file persisted by the ```genquote_host``` application and performs the following:
     1. Calls the MAA service for validation, passing it the remote quote and enclave held data found in the JSON file
+    1. Validates that the MAA JWT passes signature validation and is issued by the expected party
     1. Validates that the MAA JWT claim values match the parsed data in the JSON file for the well known fields like Security Version Number, ProductID, MRSIGNER, MRENCLAVE, etc.
     1. Produces a report in the console with the results
 
@@ -38,6 +39,11 @@ The MAA service is called to perform attestation by the following call in the [M
 ```
     // Send request
     var response = await theHttpClient.SendAsync(request);
+```
+
+The verification that the MAA service JWT passes signature validation and is issued by the expected issuer is in the  [JwtHelperValidation.cs](./validatequotes/Helpers/JwtHelperValidation.cs#L14) file:
+```
+    public static TokenValidationResult ValidateMaaJwt(string attestDnsName, string serviceJwt)
 ```
 
 The verification that the MAA service JWT claims match the initial parsed report data is performed by the following method in the [EnclaveInfo.cs](./validatequotes/EnclaveInfo.cs#L31) file:

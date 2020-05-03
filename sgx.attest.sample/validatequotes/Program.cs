@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using validatequotes.Helpers;
 
 namespace validatequotes
 {
@@ -48,6 +49,7 @@ namespace validatequotes
             var serviceJwtToken = await maaService.AttestOpenEnclaveAsync(enclaveInfo.GetMaaBody());
 
             // Analyze results
+            JwtValidationHelper.ValidateMaaJwt(attestDnsName, serviceJwtToken);
             enclaveInfo.CompareToMaaServiceJwtToken(serviceJwtToken, this.includeDetails);
         }
     }

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Net.Http;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
 namespace validatequotes
@@ -33,11 +34,13 @@ namespace validatequotes
             // Analyze failures
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
-                throw new Exception($"AttestOpenEnclaveAsync: MAA service status code {(int)response.StatusCode}");
+                var body = await response.Content.ReadAsStringAsync();
+                throw new Exception($"AttestOpenEnclaveAsync: MAA service status code {(int)response.StatusCode}.  Details: '{body}'");
             }
 
             // Return result
-            return await response.Content.ReadAsStringAsync();
+            var jwt = await response.Content.ReadAsStringAsync();
+            return jwt.Trim('"');
         }
     }
 }

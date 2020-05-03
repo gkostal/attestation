@@ -45,7 +45,7 @@ namespace validatequotes
             var isDebuggable = (Attributes & 1) == 1;
             var isd = jwtBody["is-debuggable"];
             var isdpassed = isDebuggable == (bool)isd;
-            Logger.WriteLine($"IsDebuggable check:      {isdpassed}");
+            Logger.WriteLine($"IsDebuggable check:                 {isdpassed}");
             if (includeDetails)
             {
                 Logger.WriteLine($"    We think     {isDebuggable}");
@@ -54,7 +54,7 @@ namespace validatequotes
 
             var mre = jwtBody["sgx-mrenclave"];
             var mrepassed = MrEnclaveHex.ToLower().Equals((string)mre);
-            Logger.WriteLine($"MRENCLAVE check:         {mrepassed}");
+            Logger.WriteLine($"MRENCLAVE check:                    {mrepassed}");
             if (includeDetails)
             {
                 Logger.WriteLine($"    We think:    {MrEnclaveHex.ToLower()}");
@@ -63,7 +63,7 @@ namespace validatequotes
 
             var mrs = jwtBody["sgx-mrsigner"];
             var mrspassed = MrSignerHex.ToLower().Equals(((string)mrs).ToLower());
-            Logger.WriteLine($"MRSIGNER check:          {mrspassed}");
+            Logger.WriteLine($"MRSIGNER check:                     {mrspassed}");
             if (includeDetails)
             {
                 Logger.WriteLine($"    We think     {MrSignerHex.ToLower()}");
@@ -72,7 +72,7 @@ namespace validatequotes
 
             var pid = jwtBody["product-id"];
             var pidpassed = BitConverter.ToUInt64(HexHelper.ConvertHexToByteArray(ProductIdHex), 0) == (ulong)pid;
-            Logger.WriteLine($"ProductID check:         {pidpassed}");
+            Logger.WriteLine($"ProductID check:                    {pidpassed}");
             if (includeDetails)
             {
                 Logger.WriteLine($"    We think     {BitConverter.ToUInt64(HexHelper.ConvertHexToByteArray(ProductIdHex), 0)}");
@@ -81,7 +81,7 @@ namespace validatequotes
 
             var svn = jwtBody["svn"];
             var svnPassed = SecurityVersion == (uint)svn;
-            Logger.WriteLine($"Security Version check:  {svnPassed}");
+            Logger.WriteLine($"Security Version check:             {svnPassed}");
             if (includeDetails)
             {
                 Logger.WriteLine($"    We think     {SecurityVersion}");
@@ -90,7 +90,7 @@ namespace validatequotes
 
             var ehd = jwtBody["maa-ehd"];
             var ehdPassed = HexHelper.ConvertHexToBase64Url(EnclaveHeldDataHex).Equals((string)ehd);
-            Logger.WriteLine($"Enclave Held Data check: {ehdPassed}");
+            Logger.WriteLine($"Enclave Held Data check:            {ehdPassed}");
             if (includeDetails)
             {
                 Logger.WriteLine($"    We think     {HexHelper.ConvertHexToBase64Url(EnclaveHeldDataHex)}");

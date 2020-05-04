@@ -93,6 +93,7 @@ namespace validatequotes.Helpers
             {
                 throw new ArgumentException($"JWT JKU header not valid.  Value is '{certificateDiscoveryEndpoint.ToString()}'.  Expected value is '{expectedCertificateDiscoveryEndpoint}'");
             }
+            Logger.WriteLine($"JWT JKU location validation:        True");
 
             // Retrieve trusted signing keys from the attestation service
             var webClient = new WebClient();

@@ -16,7 +16,7 @@ namespace validatequotes.Helpers
             var tenantName = attestDnsName.Split('.')[0];
             var attestUri = $"https://{attestDnsName}";
 
-            var jwksTrustedSigningKeys = RetrieveTrustedSigningKeys(serviceJwt, tenantName);
+            var jwksTrustedSigningKeys = RetrieveTrustedSigningKeys(serviceJwt, attestDnsName, tenantName);
 
             var validatedToken = ValidateSignedToken(serviceJwt, jwksTrustedSigningKeys);
             ValidateJwtIssuerIsTenant(validatedToken, attestUri);
@@ -76,20 +76,28 @@ namespace validatequotes.Helpers
             return validatedToken;
         }
 
-        private static JsonWebKeySet RetrieveTrustedSigningKeys(string serviceJwt, string tenantName)
+        private static JsonWebKeySet RetrieveTrustedSigningKeys(string serviceJwt, string attestDnsName, string tenantName)
         {
+            var expectedCertificateDiscoveryEndpoint = $"https://{attestDnsName}/certs";
+
             // Parse attestation service trusted signing key discovery endpoint from JWT header jku field
             var jwt = new JsonWebToken(serviceJwt);
             var jsonHeaderBytes = Base64Url.DecodeBytes(jwt.EncodedHeader);
             var jsonHeaderString = Encoding.UTF8.GetString(jsonHeaderBytes);
             var jsonHeader = JObject.Parse(jsonHeaderString);
             var jkuUri = jsonHeader.SelectToken("jku");
-            Uri keyUrl = new Uri(jkuUri.ToString());
+            Uri certificateDiscoveryEndpoint = new Uri(jkuUri.ToString());
+
+            // Validate that "jku" points to the expected certificate discovery endpoint
+            if (!expectedCertificateDiscoveryEndpoint.Equals(certificateDiscoveryEndpoint.ToString(), StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new ArgumentException($"JWT JKU header not valid.  Value is '{certificateDiscoveryEndpoint.ToString()}'.  Expected value is '{expectedCertificateDiscoveryEndpoint}'");
+            }
 
             // Retrieve trusted signing keys from the attestation service
             var webClient = new WebClient();
             webClient.Headers.Add("tenantName", tenantName.Length > 24 ? tenantName.Remove(24) : tenantName);
-            var jwksValue = webClient.DownloadString(keyUrl);
+            var jwksValue = webClient.DownloadString(certificateDiscoveryEndpoint);
 
             return new JsonWebKeySet(jwksValue);
         }

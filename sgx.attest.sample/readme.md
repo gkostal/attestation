@@ -41,7 +41,7 @@ The MAA service is called to perform attestation by the following call in the [M
     var response = await theHttpClient.SendAsync(request);
 ```
 
-The verification that the MAA service JWT passes signature validation and is issued by the expected issuer is in the  [JwtHelperValidation.cs](./validatequotes/Helpers/JwtHelperValidation.cs#L14) file:
+The verification that the MAA service JWT passes signature validation and is issued by the expected issuer is in the  [JwtHelperValidation.cs](./validatequotes/Helpers/JwtValidationHelper.cs#L14) file:
 ```
     public static TokenValidationResult ValidateMaaJwt(string attestDnsName, string serviceJwt)
 ```

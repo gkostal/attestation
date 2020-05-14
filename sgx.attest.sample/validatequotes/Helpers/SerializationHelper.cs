@@ -14,10 +14,10 @@ namespace validatequotes
 
             try
             {
-                var deserilizedObject = JsonConvert.DeserializeObject<T>(File.ReadAllText(filePath));
-                if (deserilizedObject != null)
+                var deserializedObject = JsonConvert.DeserializeObject<T>(File.ReadAllText(filePath));
+                if (deserializedObject != null)
                 {
-                    persistedObject = deserilizedObject;
+                    persistedObject = deserializedObject;
                 }
             }
             catch (Exception)

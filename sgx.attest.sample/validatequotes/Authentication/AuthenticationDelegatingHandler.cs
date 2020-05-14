@@ -12,13 +12,11 @@ namespace validatequotes
         private Dictionary<string, string> TenantLookup;
         private Dictionary<string, string> TokenCache;
         private const string TenantLookupFileName = "tenantlookup.bin";
-        private const string TokenCacheFileName = "tokencache.bin";
 
         public AuthenticationDelegatingHandler()
             : base(new SocketsHttpHandler())
         {
             TenantLookup = SerializationHelper.ReadFromFile<Dictionary<string, string>>(TenantLookupFileName);
-            TokenCache = SerializationHelper.ReadFromFile<Dictionary<string, string>>(TokenCacheFileName);
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -31,21 +29,7 @@ namespace validatequotes
             if (TenantLookup.ContainsKey(hostName))
             {
                 aadTenant = TenantLookup[hostName];
-                if (TokenCache.ContainsKey(aadTenant))
-                {
-                    accessToken = TokenCache[aadTenant];
-                }
-                else
-                {
-                    accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant);
-                    TokenCache[aadTenant] = accessToken;
-                    SerializationHelper.WriteToFile(TokenCacheFileName, TokenCache);
-                }
-            }
-
-            // Include access token if known
-            if (accessToken != null)
-            {
+                accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             }
 
@@ -65,8 +49,6 @@ namespace validatequotes
 
                 // Authenticate with AAD
                 accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant);
-                TokenCache[aadTenant] = accessToken;
-                SerializationHelper.WriteToFile(TokenCacheFileName, TokenCache);
 
                 // Retry one time
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);

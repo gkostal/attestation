@@ -17,7 +17,7 @@ namespace validatequotes
         public Program(string[] args)
         {
             this.fileName = args.Length > 0 ? args[0] : "../../../genquotes/quotes/enclave.info.debug.json";
-            this.attestDnsName = args.Length > 1 ? args[1] : "sharedwus.us.test.attest.azure.net";
+            this.attestDnsName = args.Length > 1 ? args[1] : "maavaltest.uks.test.attest.azure.net";
             this.includeDetails = true;
             if (args.Length > 2)
             {

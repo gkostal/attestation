@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
+using validatequotes.net;
 
 namespace validatequotes.Helpers
 {
@@ -17,10 +18,13 @@ namespace validatequotes.Helpers
             var attestUri = $"https://{attestDnsName}";
 
             var jwksTrustedSigningKeys = RetrieveTrustedSigningKeys(serviceJwt, attestDnsName, tenantName);
+            var jwksTrustedSigningKeysJWKS = new JsonWebKeySet(jwksTrustedSigningKeys);
 
-            var validatedToken = ValidateSignedToken(serviceJwt, jwksTrustedSigningKeys);
+            var validatedToken = ValidateSignedToken(serviceJwt, jwksTrustedSigningKeysJWKS);
             ValidateJwtIssuerIsTenant(validatedToken, attestUri);
             ValidateSigningCertIssuerMatchesJwtIssuer(validatedToken);
+
+            MaaQuoteValidator.LocateAndValidateMaaQuote(jwksTrustedSigningKeys);
 
             return validatedToken;
         }
@@ -76,7 +80,7 @@ namespace validatequotes.Helpers
             return validatedToken;
         }
 
-        private static JsonWebKeySet RetrieveTrustedSigningKeys(string serviceJwt, string attestDnsName, string tenantName)
+        private static string RetrieveTrustedSigningKeys(string serviceJwt, string attestDnsName, string tenantName)
         {
             var expectedCertificateDiscoveryEndpoint = $"https://{attestDnsName}/certs";
 
@@ -100,7 +104,7 @@ namespace validatequotes.Helpers
             webClient.Headers.Add("tenantName", tenantName.Length > 24 ? tenantName.Remove(24) : tenantName);
             var jwksValue = webClient.DownloadString(certificateDiscoveryEndpoint);
 
-            return new JsonWebKeySet(jwksValue);
+            return jwksValue;
         }
 
         #endregion

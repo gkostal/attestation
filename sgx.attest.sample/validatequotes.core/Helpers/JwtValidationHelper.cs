@@ -11,23 +11,23 @@ namespace validatequotes.Helpers
 {
     class JwtValidationHelper
     {
-        public static TokenValidationResult ValidateMaaJwt(string attestDnsName, string serviceJwt)
+        public static TokenValidationResult ValidateMaaJwt(string attestDnsName, string serviceJwt, bool includeDetails)
         {
             var tenantName = attestDnsName.Split('.')[0];
             var attestUri = $"https://{attestDnsName}";
 
-            var jwksTrustedSigningKeys = RetrieveTrustedSigningKeys(serviceJwt, attestDnsName, tenantName);
+            var jwksTrustedSigningKeys = RetrieveTrustedSigningKeys(serviceJwt, attestDnsName, tenantName, includeDetails);
 
-            var validatedToken = ValidateSignedToken(serviceJwt, jwksTrustedSigningKeys);
-            ValidateJwtIssuerIsTenant(validatedToken, attestUri);
-            ValidateSigningCertIssuerMatchesJwtIssuer(validatedToken);
+            var validatedToken = ValidateSignedToken(serviceJwt, jwksTrustedSigningKeys, includeDetails);
+            ValidateJwtIssuerIsTenant(validatedToken, attestUri, includeDetails);
+            ValidateSigningCertIssuerMatchesJwtIssuer(validatedToken, includeDetails);
 
             return validatedToken;
         }
 
         #region Internal implementation details
 
-        private static void ValidateSigningCertIssuerMatchesJwtIssuer(TokenValidationResult validatedToken)
+        private static void ValidateSigningCertIssuerMatchesJwtIssuer(TokenValidationResult validatedToken, bool includeDetails)
         {
             var jwtTokenIssuerClaim = validatedToken.ClaimsIdentity.Claims.First(c => c.Type == "iss");
 
@@ -42,10 +42,14 @@ namespace validatequotes.Helpers
             {
                 throw new ArgumentException("JWT is not valid (signing certificate issuer does not match JWT issuer)");
             }
-            Logger.WriteLine($"JWT signing cert issuer validation: True");
+            Logger.WriteLine($"JWT signing cert issuer validation : True");
+            if (includeDetails)
+            {
+                Logger.WriteLine($"    Signing certificate issuer     : {signingCertificate.Issuer}");
+            }
         }
 
-        private static void ValidateJwtIssuerIsTenant(TokenValidationResult validatedToken, string tenantAttestUri)
+        private static void ValidateJwtIssuerIsTenant(TokenValidationResult validatedToken, string tenantAttestUri, bool includeDetails)
         {
             // Verify that the JWT issuer is indeed the tenantAttestUri (tenant specific URI)
             var jwtTokenIssuerClaim = validatedToken.ClaimsIdentity.Claims.First(c => c.Type == "iss");
@@ -53,10 +57,14 @@ namespace validatequotes.Helpers
             {
                 throw new ArgumentException("JWT is not valid (iss claim does not match attest URI)");
             }
-            Logger.WriteLine($"JWT issuer claim validation:        True");
+            Logger.WriteLine($"JWT issuer claim validation        : True");
+            if (includeDetails)
+            {
+                Logger.WriteLine($"    JWT Issuer claim value         : {jwtTokenIssuerClaim.Value.ToString()}");
+            }
         }
 
-        private static TokenValidationResult ValidateSignedToken(string serviceJwt, JsonWebKeySet jwksTrustedSigningKeys)
+        private static TokenValidationResult ValidateSignedToken(string serviceJwt, JsonWebKeySet jwksTrustedSigningKeys, bool includeDetails)
         {
             // Now validate the JWT using the signing keys we just discovered
             TokenValidationParameters tokenValidationParams = new TokenValidationParameters
@@ -72,11 +80,17 @@ namespace validatequotes.Helpers
                 throw new ArgumentException("JWT is not valid (signature verification failed)");
             }
 
-            Logger.WriteLine($"JWT signature validation:           True");
+            Logger.WriteLine($"JWT signature validation           : True");
+            if (includeDetails)
+            {
+                X509SecurityKey signingKey = (X509SecurityKey) validatedToken.SecurityToken.SigningKey;
+                var pubKey = BitConverter.ToString(signingKey.PublicKey.ExportSubjectPublicKeyInfo()).Replace("-", "");
+                Logger.WriteLine(37, 80, "    Signing public key value       : ", pubKey);
+            }
             return validatedToken;
         }
 
-        private static JsonWebKeySet RetrieveTrustedSigningKeys(string serviceJwt, string attestDnsName, string tenantName)
+        private static JsonWebKeySet RetrieveTrustedSigningKeys(string serviceJwt, string attestDnsName, string tenantName, bool includeDetails)
         {
             var expectedCertificateDiscoveryEndpoint = $"https://{attestDnsName}/certs";
 
@@ -93,7 +107,11 @@ namespace validatequotes.Helpers
             {
                 throw new ArgumentException($"JWT JKU header not valid.  Value is '{certificateDiscoveryEndpoint.ToString()}'.  Expected value is '{expectedCertificateDiscoveryEndpoint}'");
             }
-            Logger.WriteLine($"JWT JKU location validation:        True");
+            Logger.WriteLine($"JWT JKU location validation        : True");
+            if (includeDetails)
+            {
+                Logger.WriteLine($"    JWT JKU value                  : {certificateDiscoveryEndpoint.ToString()}");
+            }
 
             // Retrieve trusted signing keys from the attestation service
             var webClient = new WebClient();

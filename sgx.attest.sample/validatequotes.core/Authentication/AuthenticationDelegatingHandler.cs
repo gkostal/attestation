@@ -10,7 +10,6 @@ namespace validatequotes
     public class AuthenticationDelegatingHandler : DelegatingHandler
     {
         private Dictionary<string, string> TenantLookup;
-        private Dictionary<string, string> TokenCache;
         private const string TenantLookupFileName = "tenantlookup.bin";
 
         public AuthenticationDelegatingHandler()

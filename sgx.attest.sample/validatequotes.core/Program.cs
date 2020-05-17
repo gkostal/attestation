@@ -19,7 +19,7 @@ namespace validatequotes
         public Program(string[] args)
         {
             this.fileName = args.Length > 0 ? args[0] : (Directory.GetCurrentDirectory().Contains("bin", StringComparison.InvariantCultureIgnoreCase) ? "../../../../genquotes/quotes/enclave.info.release.json" : "../genquotes/quotes/enclave.info.release.json");
-            this.attestDnsName = args.Length > 1 ? args[1] : "sharedwus.us.test.attest.azure.net";
+            this.attestDnsName = args.Length > 1 ? args[1] : "maavaltest.uks.test.attest.azure.net";
             this.includeDetails = true;
             if (args.Length > 2)
             {

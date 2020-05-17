@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace validatequotes.Helpers
@@ -83,9 +84,11 @@ namespace validatequotes.Helpers
             Logger.WriteLine($"JWT signature validation           : True");
             if (includeDetails)
             {
-                X509SecurityKey signingKey = (X509SecurityKey) validatedToken.SecurityToken.SigningKey;
-                var pubKey = BitConverter.ToString(signingKey.PublicKey.ExportSubjectPublicKeyInfo()).Replace("-", "");
-                Logger.WriteLine(37, 80, "    Signing public key value       : ", pubKey);
+                X509SecurityKey signingKey = (X509SecurityKey)validatedToken.SecurityToken.SigningKey;
+                var modulus = ((RSACng)signingKey.PublicKey).ExportParameters(false).Modulus;
+                var exponent = ((RSACng)signingKey.PublicKey).ExportParameters(false).Exponent;
+                Logger.WriteLine(37, 80, "    RSA signing key modulus        : ", BitConverter.ToString(modulus).Replace("-", ""));
+                Logger.WriteLine(37, 80, "    RSA signing key exponent       : ", BitConverter.ToString(exponent).Replace("-", ""));
             }
             return validatedToken;
         }

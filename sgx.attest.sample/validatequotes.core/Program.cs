@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using validatequotes.Helpers;
 
@@ -48,6 +51,36 @@ namespace validatequotes
 
             // Send to service for attestation
             var maaService = new MaaService(this.attestDnsName);
+
+            List<Task> myTasks = new List<Task>();
+            int threadID = 1;
+            long totalCount = 0;
+            Stopwatch uberStopWatch = new Stopwatch();
+            uberStopWatch.Start();
+            for (int i=0; i<40; i++){
+                myTasks.Add(Task.Run(async () => {
+                    long i=0;
+                    int myThreadID = threadID++;
+                    Stopwatch myStopWatch = new Stopwatch();
+                    while (true){
+                        try
+                        {
+                            myStopWatch.Restart();
+                            await maaService.AttestOpenEnclaveAsync(enclaveInfo.GetMaaBody());
+                            //myStopWatch.Stop();
+                            i++;
+                            var total = Interlocked.Increment(ref totalCount);
+                            Logger.WriteLine($"{myThreadID, 2} : {i, 6} : {myStopWatch.ElapsedMilliseconds,6} : {(1000.0*total/uberStopWatch.ElapsedMilliseconds):F2} : {total}");
+                        }
+                        catch (Exception x)
+                        {
+                            Logger.WriteLine($"{myThreadID, 2} : Exception caught: {x.Message}");
+                            await Task.Delay(15000);
+                        }
+                    }
+                }));
+            }
+            Task.WaitAll(myTasks.ToArray());
             var serviceJwtToken = await maaService.AttestOpenEnclaveAsync(enclaveInfo.GetMaaBody());
 
             // Analyze results

@@ -44,7 +44,10 @@ namespace validatequotes
                 // Always record AAD tenant for hostname (in edge cases it can move)
                 aadTenant = ParseAadTenant(response.Headers.GetValues("WWW-Authenticate").FirstOrDefault());
                 TenantLookup[hostName] = aadTenant;
-                SerializationHelper.WriteToFile(TenantLookupFileName, TenantLookup);
+                lock (TenantLookupFileName)
+                {
+                    SerializationHelper.WriteToFile(TenantLookupFileName, TenantLookup);
+                }
 
                 // Authenticate with AAD
                 accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant);

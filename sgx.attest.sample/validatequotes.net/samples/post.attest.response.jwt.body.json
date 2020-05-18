@@ -1,0 +1,23 @@
+{
+    "exp": 1589849123,
+    "iat": 1589820323,
+    "is-debuggable": true,
+    "iss": "https://maavaltest.uks.test.attest.azure.net",
+    "maa-attestationcollateral": {
+        "maa-qeidcertshash": "1b2a7cd5966929aec1e061f47aba03ae422c11e9f8dce4212c2bb3609222f324",
+        "maa-qeidcrlhash": "cbb96537d69f90c8c41efb29a750fb09eb7693d9c4b5a22bcb4e6ab859f1ca25",
+        "maa-qeidhash": "a5d7246ce0cf2ac168724573cd2845d86d200eed4753676fd209ee9e2de7064e",
+        "maa-quotehash": "5de4837f3e49c67430a9e6da3a26b966cc37c5d4c0f935c867c4a450df5982ae",
+        "maa-tcbinfocertshash": "1b2a7cd5966929aec1e061f47aba03ae422c11e9f8dce4212c2bb3609222f324",
+        "maa-tcbinfocrlhash": "cbb96537d69f90c8c41efb29a750fb09eb7693d9c4b5a22bcb4e6ab859f1ca25",
+        "maa-tcbinfohash": "0081d032aa6f85bfbfd95a26341f669c649e1db4ab9f09b7832834577c7d71b7"
+    },
+    "maa-ehd": "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF2bGR3LzMxN3puKzVEbDhZWFYydwpnMDAyTFpRc1JCVUFNYTJBVGJIdkVSbjdmS1B4MWxETWJoc2JodDZqV3hmL0o1cERNZ1FpRWRmMlBEWGptZU45ClFCUzNHRDRsQjJZMUhXeGs5Nml1eFZuR3ZibWNQVEVJUGl5enpib1kyUkkyRjRjbi96eTNsVjNDY3JNdkgvaGMKcjFKWC90N1BZMktSRWxWV0k2ZnNod1ZYalZQZStnRkFSd1FJbjJLUVpUbEJETG9JUTd4WGlDV3JlVUowR1dyWgpxYTNTd3ZNVjBsNlRIalgxVUZldjdDeE81LzlSc1BjWGJmdCtrSFYwWVpCUUpiUVFLVmJNZXJYTEUwcng1OVJwCjJybncwcFNMNy9DSmc1czM4WFFremdkMHVkTlRlVTlHd0JGZUJURlZac0NxSVJtSVFFSDB6UUJ3N0JRSFJEWGMKa1FJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "maa-policyHash": "200e2717392bfb187b89c7c498b8e5ebcd6ad136dc0cdb5b897fdb13e344ca40",
+    "nbf": 1589820323,
+    "product-id": 1,
+    "sgx-mrenclave": "9e5f08ef3dcb0e330ef34e06cdde00eb601243dd4844233dab378ec47fee4657",
+    "sgx-mrsigner": "6b1f95f512413b03759aaec2ec2b27cc2735468bb6113ccca163da92ca2b9b26",
+    "svn": 1,
+    "tee": "sgx"
+}

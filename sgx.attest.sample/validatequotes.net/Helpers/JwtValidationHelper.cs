@@ -1,6 +1,8 @@
 ﻿using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Asn1;
+using Org.BouncyCastle.X509;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,6 +32,19 @@ namespace validatequotes.Helpers
             X509Certificate2 signingCertificate = signingKey.Certificate;
             byte[] certificateBytes = signingCertificate.RawData;
             string x5c = Convert.ToBase64String(certificateBytes);
+
+            if (includeDetails)
+            {
+                var bouncyCertParser = new X509CertificateParser();
+                var bouncyCert = bouncyCertParser.ReadCertificate(certificateBytes);
+                var bouncyAsn1Sequence = (DerSequence)bouncyCert.CertificateStructure.ToAsn1Object();
+
+                for (int i= 0; i<bouncyAsn1Sequence.Count; i++)
+                {
+                    var asn1 = bouncyAsn1Sequence[i];
+                    Logger.WriteLine(53, 128, $"{asn1.GetType().ToString(),50} : ", BitConverter.ToString(asn1.GetEncoded()).Replace("-", ""));
+                }
+            }
 
             Logger.WriteBanner("VALIDATING MAA JWT TOKEN - MAA EMBEDDED QUOTE IN SIGNING CERTIFICATE FOR JWT");
             MaaQuoteValidator.ValidateMaaQuote(x5c, includeDetails);

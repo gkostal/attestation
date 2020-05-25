@@ -53,7 +53,7 @@ namespace validatequotes
             }
             catch (Exception x)
             {
-                Logger.WriteLine($"Exception thrown locating quote in certificate: {x.ToString()}");
+                //Logger.WriteLine($"Exception thrown locating quote in certificate: {x.ToString()}");
             }
 
             Logger.WriteLine($"Embedded quote found in certificate: {embeddedQuoteLocated}");

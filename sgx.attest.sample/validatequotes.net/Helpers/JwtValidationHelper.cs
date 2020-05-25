@@ -1,4 +1,6 @@
-﻿using Microsoft.IdentityModel.JsonWebTokens;
+﻿//#define LOG_BOUNCY_CASTLE
+
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json.Linq;
 using Org.BouncyCastle.Asn1;
@@ -33,6 +35,7 @@ namespace validatequotes.Helpers
             byte[] certificateBytes = signingCertificate.RawData;
             string x5c = Convert.ToBase64String(certificateBytes);
 
+#if LOG_BOUNCY_CASTLE
             if (includeDetails)
             {
                 var bouncyCertParser = new X509CertificateParser();
@@ -45,6 +48,7 @@ namespace validatequotes.Helpers
                     Logger.WriteLine(53, 128, $"{asn1.GetType().ToString(),50} : ", BitConverter.ToString(asn1.GetEncoded()).Replace("-", ""));
                 }
             }
+#endif
 
             Logger.WriteBanner("VALIDATING MAA JWT TOKEN - MAA EMBEDDED QUOTE IN SIGNING CERTIFICATE FOR JWT");
             MaaQuoteValidator.ValidateMaaQuote(x5c, includeDetails);
@@ -52,7 +56,7 @@ namespace validatequotes.Helpers
             return validatedToken;
         }
 
-        #region Internal implementation details
+#region Internal implementation details
 
         private static void ValidateSigningCertIssuerMatchesJwtIssuer(TokenValidationResult validatedToken, bool includeDetails)
         {
@@ -150,6 +154,6 @@ namespace validatequotes.Helpers
             return jwksValue;
         }
 
-        #endregion
+#endregion
     }
 }

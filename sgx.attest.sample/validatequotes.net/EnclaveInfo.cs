@@ -91,8 +91,8 @@ namespace validatequotes
             Logger.WriteLine($"Enclave Held Data match            : {ehdPassed}");
             if (includeDetails)
             {
-                Logger.WriteLine(17, 128, "    We think   : ", EnclaveHeldDataHex);
-                Logger.WriteLine(17, 128, "    MAA service: ", BitConverter.ToString(Base64Url.DecodeBytes(ehd.ToString())).Replace("-",""));
+                Logger.WriteLine(17, 124, "    We think   : ", EnclaveHeldDataHex);
+                Logger.WriteLine(17, 124, "    MAA service: ", BitConverter.ToString(Base64Url.DecodeBytes(ehd.ToString())).Replace("-",""));
             }
 
             Logger.WriteLine("");

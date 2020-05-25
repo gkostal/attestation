@@ -46,12 +46,12 @@ The verification that the MAA service JWT passes signature validation and is iss
     public static TokenValidationResult ValidateMaaJwt(string attestDnsName, string serviceJwt)
 ```
 
-The verification that the MAA service JWT claims match the initial parsed report data is performed by the following method in the [EnclaveInfo.cs](./validatequotes.net/EnclaveInfo.cs#L31) file:
+The verification that the MAA service JWT claims match the initial parsed report data is performed in the [EnclaveInfo.cs](./validatequotes.net/EnclaveInfo.cs#L31) file:
 ```
     public void CompareToMaaServiceJwtToken(string serviceJwtToken, bool includeDetails)
 ```
 
-If the MAA service is running within an SGX enclave, the validation of the MAA service quote is performed by the following method in the [MaaQuoteValidator.cs](./validatequotes.net/MaaQuoteValidator.cs#L41) file:
+If the MAA service is running within an SGX enclave, the validation of the MAA service quote is performed in the [MaaQuoteValidator.cs](./validatequotes.net/MaaQuoteValidator.cs#L41) file:
 ```
     static public void ValidateMaaQuote(string x5c, bool includeDetails)
 ```

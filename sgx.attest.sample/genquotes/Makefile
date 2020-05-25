@@ -18,3 +18,6 @@ run:
 	host/genquote_host ./enclave/genquote_enclave.release.signed            enclave.info.release.json
 	host/genquote_host ./enclave/genquote_enclave.prodid.signed             enclave.info.prodid.json
 	host/genquote_host ./enclave/genquote_enclave.securityversion.signed    enclave.info.securityversion.json
+
+runone:
+	host/genquote_host ./enclave/genquote_enclave.prodid.signed             enclave.info.prodid.json

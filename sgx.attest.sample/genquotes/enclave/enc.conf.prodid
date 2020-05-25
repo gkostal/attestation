@@ -6,5 +6,5 @@ Debug=0
 NumHeapPages=1024
 NumStackPages=1024
 NumTCS=2
-ProductID=999
+ProductID=9999
 SecurityVersion=1

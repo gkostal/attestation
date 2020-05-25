@@ -85,10 +85,17 @@ namespace validatequotes.Helpers
             if (includeDetails)
             {
                 X509SecurityKey signingKey = (X509SecurityKey)validatedToken.SecurityToken.SigningKey;
-                var modulus = ((RSACng)signingKey.PublicKey).ExportParameters(false).Modulus;
-                var exponent = ((RSACng)signingKey.PublicKey).ExportParameters(false).Exponent;
-                Logger.WriteLine(37, 80, "    RSA signing key modulus        : ", BitConverter.ToString(modulus).Replace("-", ""));
-                Logger.WriteLine(37, 80, "    RSA signing key exponent       : ", BitConverter.ToString(exponent).Replace("-", ""));
+                if (signingKey.PublicKey is RSA publicKey)
+		{
+		    var modulus = publicKey.ExportParameters(false).Modulus;
+                    var exponent = publicKey.ExportParameters(false).Exponent;
+                    Logger.WriteLine(37, 80, "    RSA signing key modulus        : ", BitConverter.ToString(modulus).Replace("-", ""));
+                    Logger.WriteLine(37, 80, "    RSA signing key exponent       : ", BitConverter.ToString(exponent).Replace("-", ""));
+		}
+		else
+		{
+		    Logger.WriteLine($"Unexpected signing key type.  Signing Key Type: {signingKey.PublicKey.GetType()}");
+		}
             }
             return validatedToken;
         }

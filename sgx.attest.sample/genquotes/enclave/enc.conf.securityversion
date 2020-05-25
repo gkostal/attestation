@@ -7,4 +7,4 @@ NumHeapPages=1024
 NumStackPages=1024
 NumTCS=2
 ProductID=1
-SecurityVersion=999
+SecurityVersion=8888

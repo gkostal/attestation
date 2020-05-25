@@ -15,5 +15,5 @@ class QuoteFile
     void WriteToJsonFile(FILE *fp);
 
   private:
-    const char *FormatHexBuffer (char *buffer, uint maxSize, uint8_t *data, size_t size);
+    const char *FormatHexBuffer (char *buffer, uint32_t maxSize, uint8_t *data, size_t size);
 };

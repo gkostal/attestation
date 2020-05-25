@@ -1,3 +1,4 @@
+#include <openenclave/host.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -16,7 +17,7 @@ void QuoteFile::WriteToJsonFile(const char *directory, const char* jsonFileName)
 {
     struct stat st = {0};
     if (stat(directory, &st) == -1) {
-        mkdir(directory, 0700);
+        //mkdir(directory, 0700);
     }
 
     char jsonFullFileName[1024];
@@ -44,7 +45,7 @@ void QuoteFile::WriteToJsonFile (FILE *fp)
     fprintf(fp, "%s\n", "}");
 }
 
-const char *QuoteFile::FormatHexBuffer (char *buffer, uint maxSize, uint8_t *data, size_t size)
+const char *QuoteFile::FormatHexBuffer (char *buffer, uint32_t maxSize, uint8_t *data, size_t size)
 {
     if (size * 2 >= maxSize)
         return "DEADBEEF";

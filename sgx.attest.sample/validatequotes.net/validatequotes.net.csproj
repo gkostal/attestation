@@ -34,8 +34,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <!-- git clone https://github.com/LarryOsterman/RetrieveAndVerifyMetadataCerts.git -->
-    <ProjectReference Include="..\..\..\RetrieveAndVerifyMetadataCerts\VerifyMetadataCertificates\VerifyMetadataCertificates.vcxproj">
+    <ProjectReference Include=".\verify.metadata.certificates\VerifyMetadataCertificates.vcxproj">
       <Project>{07141FC4-2DC9-4E23-9D55-D93E7D3EBAE7}</Project>
       <Name>VerifyMetadataCertificates</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -127,10 +126,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="demo.uks.cmd">
+    <None Include="demo.eus2.cmd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="demo.wus.cmd">
+    <None Include="demo.uks.cmd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />

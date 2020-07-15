@@ -26,7 +26,7 @@ namespace validatequotes
         {
             string accessToken = null;
 
-            var ctx = new AuthenticationContext($"https://login.microsoftonline.com/{tenant}", _tokenCache);
+            var ctx = new AuthenticationContext($"https://login.windows.net/{tenant}", _tokenCache);
             
             try
             {

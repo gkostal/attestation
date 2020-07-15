@@ -4,9 +4,9 @@ rem ******************************************************************
 rem Attest against 3 test regions in a forever loop
 rem ******************************************************************
 :top
-call :callmaa sharedwus.us.test.attest.azure.net
-call :callmaa shareduks.uks.test.attest.azure.net
-call :callmaa sharedeus.eus.test.attest.azure.net
+call :callmaa sharedcus.cus.attest.azure.net
+call :callmaa sharedeus2.eus2.attest.azure.net
+call :callmaa shareduks.uks.attest.azure.net
 goto :top
 
 rem ******************************************************************

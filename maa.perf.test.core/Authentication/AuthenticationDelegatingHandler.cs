@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -14,7 +15,12 @@ namespace maa.perf.test.core.Authentication
         private const string TenantLookupFileName = "tenantlookup.bin";
 
         public AuthenticationDelegatingHandler()
-            : base(new SocketsHttpHandler())
+            : base(new SocketsHttpHandler
+            {
+                PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+                PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
+                MaxConnectionsPerServer = int.MaxValue
+            })
         {
             TenantLookup = SerializationHelper.ReadFromFile<Dictionary<string, string>>(TenantLookupFileName);
         }

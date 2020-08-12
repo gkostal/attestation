@@ -10,3 +10,4 @@ genquote_host
 genquote_enclave
 
 # Directories
+maa-jwt/

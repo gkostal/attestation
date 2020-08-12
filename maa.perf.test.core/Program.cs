@@ -75,6 +75,7 @@ namespace maa.perf.test.core
 
             AsyncFor myFor = new AsyncFor(_options.TargetRPS, "MAA SGX Attest");
             myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
+            myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
             await myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, CallAttestSgx);
         }
 

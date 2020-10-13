@@ -31,9 +31,10 @@ namespace maa.perf.test.core
             public Options()
             {
                 Verbose = true;
-                AttestationProvider = "sharedeus.eus.test.attest.azure.net";
+                AttestationProvider = "shareduks.uks.attest.azure.net";
+                //AttestationProvider = "sharedeus.eus.test.attest.azure.net";
                 EnclaveInfoFile = "./Quotes/enclave.info.release.json";
-                SimultaneousConnections = 16;
+                SimultaneousConnections = 30;
                 TargetRPS = 10;
             }
         }

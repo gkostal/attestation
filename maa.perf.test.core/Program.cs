@@ -39,8 +39,6 @@ namespace maa.perf.test.core
             }
         }
 
-        private const long TargetRPS = 10;
-        private const long ParallelConnections = 20;
         private Options _options;
         private EnclaveInfo _enclaveInfo;
         private MaaService _maaService;
@@ -82,9 +80,16 @@ namespace maa.perf.test.core
 
         public async Task<double> CallAttestSgx()
         {
-            var serviceJwtToken = await _maaService.AttestOpenEnclaveAsync(_enclaveInfo.GetMaaBody());
+            try
+            {
+                await _maaService.AttestOpenEnclaveAsync(_enclaveInfo.GetMaaBody());
+            }
+            catch (Exception x)
+            {
+                Tracer.TraceError($"Exception caught: {x.ToString()}");
+            }
+
             return await Task.FromResult(0.0);
         }
-
     }
 }

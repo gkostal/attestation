@@ -128,7 +128,7 @@ namespace maa.perf.test.core.Utils
                 }
                 catch (Exception x)
                 {
-                    Tracer.TraceWarning("Ignoring exception on background metrics reporting thread.  Exception = {0}", x.ToString());
+                    Tracer.TraceWarning($"Ignoring exception on background metrics reporting thread.  Exception = {x.ToString()}");
                 }
             }
         }

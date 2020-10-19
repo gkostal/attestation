@@ -16,14 +16,23 @@
             Directory.CreateDirectory(resultsDir);
 
             // Create the original trusted policy signing certificate
-            X509Certificate2 cert1 = CertificateUtils.CreateCertificateAuthorityCertificate("CN=MaaTestCert1");
-            var signingCert = new List<X509Certificate2>() {cert1}.ToArray();
+            List<X509Certificate2> myCerts = new List<X509Certificate2>();
+            for (int i = 1; i <= 10; i++)
+            {
+                myCerts.Add(CertificateUtils.CreateCertificateAuthorityCertificate($"CN=MaaOriginalTestCert{i}"));
+            }
 
-            Console.WriteLine($"Creating PEM certificate file: cert1.pem");
-            File.WriteAllText($"{resultsDir}\\cert1.pem", CertificateUtils.GeneratePem(cert1));
+            var firstCert = myCerts[0];
+            var signingCert = new List<X509Certificate2>() {firstCert}.ToArray();
+
+            Console.WriteLine($"Creating PEM certificates file: all.signing.certs.pem");
+            File.WriteAllText($"{resultsDir}\\all.signing.certs.pem", CertificateUtils.GeneratePem(myCerts));
+
+            Console.WriteLine($"Creating PEM certificate file: signing.cert.pem");
+            File.WriteAllText($"{resultsDir}\\signing.cert.pem", CertificateUtils.GeneratePem(firstCert));
 
             // Create 4 additional signed certificates to add and remove
-            for (int i=2; i<=5; i++)
+            for (int i=1; i<=20; i++)
             {
                 X509Certificate2 cert = CertificateUtils.CreateCertificateAuthorityCertificate($"CN=MaaTestCert{i}");
 

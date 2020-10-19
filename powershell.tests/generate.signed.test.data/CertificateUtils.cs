@@ -29,7 +29,18 @@ namespace AasPolicyCertificates
             var section = "CERTIFICATE";
             var header = String.Format("-----BEGIN {0}-----", section);
             var footer = String.Format("-----END {0}-----", section);
-            return header + "\n" + base64Cert + "\n" + footer;
+            return header + "\n" + base64Cert + "\n" + footer + '\n';
+        }
+
+        internal static string GeneratePem(List<X509Certificate2> certs)
+        {
+            string base64certs = null;
+            foreach (var cert in certs)
+            {
+                base64certs += GeneratePem(cert);
+            }
+
+            return base64certs;
         }
 
         internal static X509Certificate2 CreateSelfSignedCertificate(string subjectName, string[] subjectAlternativeNames = default(string[]), KeyPurposeID[] usages = default(KeyPurposeID[]))

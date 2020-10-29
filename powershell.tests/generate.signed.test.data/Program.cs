@@ -1,4 +1,6 @@
-﻿namespace AasPolicyCertificates
+﻿using System.Linq;
+
+namespace AasPolicyCertificates
 {
     using System;
     using System.Collections.Generic;
@@ -15,24 +17,30 @@
 
             Directory.CreateDirectory(resultsDir);
 
-            // Create the original trusted policy signing certificate
-            List<X509Certificate2> myCerts = new List<X509Certificate2>();
-            for (int i = 1; i <= 10; i++)
-            {
-                myCerts.Add(CertificateUtils.CreateCertificateAuthorityCertificate($"CN=MaaOriginalTestCert{i}"));
-            }
+            // Generate sample PEM with a certificate chain
+            var parentCert = CertificateUtils.CreateCertificateAuthorityCertificate($"CN=MyCaCertificate");
+            var intermediateCert = CertificateUtils.IssueCertificate($"CN=MyLeafCertificate", parentCert, false);
+            var leafCert = CertificateUtils.IssueCertificate($"CN=MyLeafCertificate", intermediateCert, true);
+            var myCertChain = new List<X509Certificate2>() { leafCert, intermediateCert, parentCert };
+            Console.WriteLine($"Creating PEM file with a cert chain: cert.chain.pem");
+            File.WriteAllText($"{resultsDir}\\cert.chain.pem", CertificateUtils.GeneratePem(myCertChain));
 
-            var firstCert = myCerts[0];
-            var signingCert = new List<X509Certificate2>() {firstCert}.ToArray();
+            // Generate 10 sample PEM's with a self signed certificate
+            // And also one PEM file with all 10 self signed certificates
+            List<X509Certificate2> mySelfSignedCerts = new List<X509Certificate2>();
+            Enumerable.Range(1, 10).ForEach(i => mySelfSignedCerts.Add(CertificateUtils.CreateCertificateAuthorityCertificate($"CN=MaaOriginalTestCert{i}")));
 
-            Console.WriteLine($"Creating PEM certificates file: all.signing.certs.pem");
-            File.WriteAllText($"{resultsDir}\\all.signing.certs.pem", CertificateUtils.GeneratePem(myCerts));
+            var firstCert = mySelfSignedCerts[0];
+            var signingCert = new List<X509Certificate2>() { firstCert }.ToArray();
+
+            Console.WriteLine($"Creating PEM certificates file: ten.self.signed.signing.certs.pem");
+            File.WriteAllText($"{resultsDir}\\ten.self.signed.signing.certs.pem", CertificateUtils.GeneratePem(mySelfSignedCerts));
 
             Console.WriteLine($"Creating PEM certificate file: signing.cert.pem");
             File.WriteAllText($"{resultsDir}\\signing.cert.pem", CertificateUtils.GeneratePem(firstCert));
 
-            // Create 4 additional signed certificates to add and remove
-            for (int i=1; i<=20; i++)
+            // Create 20 additional signed certificates to add and remove
+            Enumerable.Range(1, 20).ForEach(i =>
             {
                 X509Certificate2 cert = CertificateUtils.CreateCertificateAuthorityCertificate($"CN=MaaTestCert{i}");
 
@@ -42,6 +50,20 @@
                 string certAddJwt = JwtUtils.GenerateSignedJsonWebToken(addCertBody, signingCert);
                 Console.WriteLine($"Creating signed certificate file: cert{i}.signed.txt");
                 File.WriteAllText($"{resultsDir}\\cert{i}.signed.txt", certAddJwt);
+            });
+
+            // Create a signed certificate chain to add and remove
+            {
+                var exportedParentCert = parentCert.Export(X509ContentType.Cert);
+                var exportedIntermediateCert = intermediateCert.Export(X509ContentType.Cert);
+                var exportedLeafCert = leafCert.Export(X509ContentType.Cert);
+
+                string jwkToAdd = $"{{\"kty\":\"RSA\", \"x5c\":[\"{System.Convert.ToBase64String(exportedLeafCert)}\", \"{System.Convert.ToBase64String(exportedIntermediateCert)}\", \"{System.Convert.ToBase64String(exportedParentCert)}\"]}}";
+                string addCertBody = $"{{\"maa-policyCertificate\": {jwkToAdd}}}";
+                string certAddJwt = JwtUtils.GenerateSignedJsonWebToken(addCertBody, signingCert);
+
+                Console.WriteLine($"Creating signed certificate file with cert chain: cert.chain.signed.txt");
+                File.WriteAllText($"{resultsDir}\\cert.chain.signed.txt", certAddJwt);
             }
 
             // Create a signed version of all unsigned policy files
@@ -53,6 +75,18 @@
                 var signedPolicyJwt = JwtUtils.GenerateSignedJsonWebToken(decodedBody, signingCert);
                 Console.WriteLine($"Creating signed policy file: {fileInfo.Name}.signed{fileInfo.Extension}");
                 File.WriteAllText($"{resultsDir}\\{fileInfo.Name}.signed{fileInfo.Extension}", signedPolicyJwt);
+            }
+        }
+    }
+
+    public static class MoreLinq
+    {
+
+        public static void ForEach<T>(this IEnumerable<T> source, Action<T> action)
+        {
+            foreach (T element in source)
+            {
+                action(element);
             }
         }
     }

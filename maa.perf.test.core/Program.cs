@@ -28,6 +28,9 @@ namespace maa.perf.test.core
             [Option('r', "rps", Required = false, HelpText = "Target RPS.")]
             public long TargetRPS { get; set; }
 
+            [Option('f', "forcereconnects", Required = false, HelpText = "Force reconnects on each request.")]
+            public bool ForceReconnects { get; set; }
+
             public Options()
             {
                 Verbose = true;
@@ -60,12 +63,13 @@ namespace maa.perf.test.core
 
             Tracer.CurrentTracingLevel = _options.Verbose ? TracingLevel.Verbose : TracingLevel.Warning;
             _enclaveInfo = EnclaveInfo.CreateFromFile(_options.EnclaveInfoFile);
-            _maaService = new MaaService(_options.AttestationProvider);
+            _maaService = new MaaService(_options.AttestationProvider, _options.ForceReconnects);
 
             Tracer.TraceInfo($"Attestation Provider     : {_options.AttestationProvider}");
             Tracer.TraceInfo($"Enclave Info File        : {_options.EnclaveInfoFile}");
             Tracer.TraceInfo($"Simultaneous Connections : {_options.SimultaneousConnections}");
             Tracer.TraceInfo($"Target RPS               : {_options.TargetRPS}");
+            Tracer.TraceInfo($"Force Reconnects         : {_options.ForceReconnects}");
         }
 
         public async Task RunAsync()

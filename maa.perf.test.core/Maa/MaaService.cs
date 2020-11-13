@@ -8,17 +8,24 @@ namespace maa.perf.test.core.Maa
 {
     public class MaaService
     {
-        private string providerDnsName;
         private static HttpClient theHttpClient;
+        private string providerDnsName;
+        private bool forceReconnects;
+
+        public HttpClient MyHttpClient =>
+            forceReconnects ? new HttpClient(new AuthenticationDelegatingHandler()) : theHttpClient;
+
+        public bool ForceReconnects => forceReconnects;
 
         static MaaService()
         {
             theHttpClient = new HttpClient(new AuthenticationDelegatingHandler());
         }
 
-        public MaaService(string providerDnsName)
+        public MaaService(string providerDnsName, bool forceReconnects)
         {
             this.providerDnsName = providerDnsName;
+            this.forceReconnects = forceReconnects;
         }
 
         public async Task<string> AttestOpenEnclaveAsync(AttestOpenEnclaveRequestBody requestBody)
@@ -29,7 +36,7 @@ namespace maa.perf.test.core.Maa
             request.Content = new StringContent(JsonConvert.SerializeObject(requestBody));
 
             // Send request
-            var response = await theHttpClient.SendAsync(request);
+            var response = await MyHttpClient.SendAsync(request);
 
             // Analyze failures
             if (response.StatusCode != System.Net.HttpStatusCode.OK)

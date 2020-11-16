@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "maa.perf.test.core": {
+      "commandName": "Project"
+    }
+  }
+}

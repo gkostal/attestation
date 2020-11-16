@@ -74,8 +74,6 @@ namespace maa.perf.test.core
 
         public async Task RunAsync()
         {
-            await Authentication.Authentication.AcquireAccessTokenAsync("microsoft.com", false);
-
             AsyncFor myFor = new AsyncFor(_options.TargetRPS, "MAA SGX Attest");
             myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
             myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;

@@ -14,23 +14,35 @@ namespace maa.perf.test.core.Utils
 
             try
             {
-                var deserializedObject = JsonConvert.DeserializeObject<T>(File.ReadAllText(filePath));
-                if (deserializedObject != null)
+                if (File.Exists(filePath))
                 {
-                    persistedObject = deserializedObject;
+                    var deserializedObject = JsonConvert.DeserializeObject<T>(File.ReadAllText(filePath));
+                    if (deserializedObject != null)
+                    {
+                        persistedObject = deserializedObject;
+                    }
                 }
             }
             catch (Exception)
             {
+                //Tracer.TraceWarning($"Ignoring failed read from file '{filePath}'.  Exception: {x.Message}");
                 // Ignore on purpose and return default object value
             }
 
             return persistedObject;
         }
 
-        public static void WriteToFile<T>(string fileName, T persistedObject)
+        public static void WriteToFile<T>(string filePath, T persistedObject)
         {
-            File.WriteAllText(fileName, JsonConvert.SerializeObject(persistedObject));
+            try
+            {
+                File.WriteAllText(filePath, JsonConvert.SerializeObject(persistedObject));
+            }
+            catch (Exception)
+            {
+                // Tracer.TraceWarning($"Ignoring failed write to file '{filePath}'.  Exception: {x.Message}");
+                // Ignore on purpose and return default object value
+            }
         }
     }
 }

@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 using maa.perf.test.core.Utils;
 using CommandLine;
-using maa.perf.test.core.Maa;
-using maa.perf.test.core.Authentication;
 
 namespace maa.perf.test.core
 {
@@ -13,14 +10,8 @@ namespace maa.perf.test.core
     {
         public class Options
         {
-            [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
-            public bool Verbose { get; set; }
-
             [Option('p', "provider", Required = false, HelpText = "Attestation provider DNS name.")]
             public string AttestationProvider { get; set; }
-
-            [Option('q', "quote", Required = false, HelpText = "Enclave info file containing the SGX quote.")]
-            public string EnclaveInfoFile { get; set; }
 
             [Option('c', "connections", Required = false, HelpText = "Number of simultaneous connections (and calls) to the MAA service.")]
             public long  SimultaneousConnections { get; set; }
@@ -31,22 +22,32 @@ namespace maa.perf.test.core
             [Option('f', "forcereconnects", Required = false, HelpText = "Force reconnects on each request.")]
             public bool ForceReconnects { get; set; }
 
+            [Option('w', "previewapiversion", Required = false, HelpText = "Use preview api-version instead of GA.")]
+            public bool UsePreviewApiVersion { get; set; }
+
+            [Option('q', "quote", Required = false, HelpText = "Enclave info file containing the SGX quote.")]
+            public string EnclaveInfoFile { get; set; }
+
+            [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
+            public bool Verbose { get; set; }
+
             public Options()
             {
                 Verbose = true;
                 AttestationProvider = "shareduks.uks.attest.azure.net";
-                //AttestationProvider = "sharedeus.eus.test.attest.azure.net";
                 EnclaveInfoFile = "./Quotes/enclave.info.release.json";
-                SimultaneousConnections = 30;
-                TargetRPS = 10;
+                SimultaneousConnections = 5;
+                TargetRPS = 1;
+                ForceReconnects = false;
+                UsePreviewApiVersion = false;
             }
         }
 
         private Options _options;
-        private EnclaveInfo _enclaveInfo;
-        private MaaService _maaService;
+        private Maa.EnclaveInfo _enclaveInfo;
+        private Maa.MaaService _maaService;
 
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             ServicePointManager.DefaultConnectionLimit = 1024 * 32;
 
@@ -62,8 +63,8 @@ namespace maa.perf.test.core
             _options = options;
 
             Tracer.CurrentTracingLevel = _options.Verbose ? TracingLevel.Verbose : TracingLevel.Warning;
-            _enclaveInfo = EnclaveInfo.CreateFromFile(_options.EnclaveInfoFile);
-            _maaService = new MaaService(_options.AttestationProvider, _options.ForceReconnects);
+            _enclaveInfo = Maa.EnclaveInfo.CreateFromFile(_options.EnclaveInfoFile);
+            _maaService = new Maa.MaaService(_options.AttestationProvider, _options.ForceReconnects);
 
             Tracer.TraceInfo($"Attestation Provider     : {_options.AttestationProvider}");
             Tracer.TraceInfo($"Enclave Info File        : {_options.EnclaveInfoFile}");
@@ -74,17 +75,38 @@ namespace maa.perf.test.core
 
         public async Task RunAsync()
         {
-            AsyncFor myFor = new AsyncFor(_options.TargetRPS, "MAA SGX Attest");
+            AsyncFor myFor = new AsyncFor(_options.TargetRPS, _options.AttestationProvider);
             myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
             myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
-            await myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, CallAttestSgx);
+            await myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, GetAttestCallback());
         }
 
-        public async Task<double> CallAttestSgx()
+        public Func<Task<double>> GetAttestCallback()
+        {
+            if (_options.UsePreviewApiVersion)
+                return CallAttestSgxPreviewApiVersion;
+            else
+                return CallAttestSgxGaApiVersion;
+        }
+
+        public async Task<double> CallAttestSgxPreviewApiVersion()
         {
             try
             {
-                await _maaService.AttestOpenEnclaveAsync(_enclaveInfo.GetMaaBody());
+                await _maaService.AttestOpenEnclaveAsync(new Maa.Preview.AttestOpenEnclaveRequestBody(_enclaveInfo));
+            }
+            catch (Exception x)
+            {
+                Tracer.TraceError($"Exception caught: {x.ToString()}");
+            }
+
+            return await Task.FromResult(0.0);
+        }
+        public async Task<double> CallAttestSgxGaApiVersion()
+        {
+            try
+            {
+                await _maaService.AttestOpenEnclaveAsync(new Maa.Ga.AttestOpenEnclaveRequestBody(_enclaveInfo));
             }
             catch (Exception x)
             {

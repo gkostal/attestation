@@ -18,15 +18,5 @@ namespace maa.perf.test.core.Maa
         {
             return SerializationHelper.ReadFromFile<EnclaveInfo>(filePath);
         }
-
-        public AttestOpenEnclaveRequestBody GetMaaBody()
-        {
-            var maaBody = new AttestOpenEnclaveRequestBody
-            {
-                Quote = HexHelper.ConvertHexToBase64Url(QuoteHex),
-                EnclaveHeldData = HexHelper.ConvertHexToBase64Url(EnclaveHeldDataHex)
-            };
-            return maaBody;
-        }
     }
 }

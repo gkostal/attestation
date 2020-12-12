@@ -15,8 +15,6 @@ namespace maa.perf.test.core.Maa
         public HttpClient MyHttpClient =>
             forceReconnects ? new HttpClient(new AuthenticationDelegatingHandler()) : theHttpClient;
 
-        public bool ForceReconnects => forceReconnects;
-
         static MaaService()
         {
             theHttpClient = new HttpClient(new AuthenticationDelegatingHandler());
@@ -28,12 +26,22 @@ namespace maa.perf.test.core.Maa
             this.forceReconnects = forceReconnects;
         }
 
-        public async Task<string> AttestOpenEnclaveAsync(AttestOpenEnclaveRequestBody requestBody)
+        public async Task<string> AttestOpenEnclaveAsync(Preview.AttestOpenEnclaveRequestBody requestBody)
+        {
+            return await DoAttestOpenEnclaveAsync($"https://{providerDnsName}:443/attest/Tee/OpenEnclave?api-version=2018-09-01-preview", requestBody);
+        }
+
+        //2020-10-01
+        public async Task<string> AttestOpenEnclaveAsync(Ga.AttestOpenEnclaveRequestBody requestBody)
+        {
+            return await DoAttestOpenEnclaveAsync($"https://{providerDnsName}:443/attest/OpenEnclave?api-version=2020-10-01", requestBody);
+        }
+
+        private async Task<string> DoAttestOpenEnclaveAsync(string uri, object bodyObject)
         {
             // Build request
-            var uri = $"https://{providerDnsName}:443/attest/Tee/OpenEnclave?api-version=2018-09-01-preview";
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
-            request.Content = new StringContent(JsonConvert.SerializeObject(requestBody));
+            request.Content = new StringContent(JsonConvert.SerializeObject(bodyObject), null, "application/json");
 
             // Send request
             var response = await MyHttpClient.SendAsync(request);

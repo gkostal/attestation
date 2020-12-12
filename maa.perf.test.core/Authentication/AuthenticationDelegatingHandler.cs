@@ -11,8 +11,10 @@ namespace maa.perf.test.core.Authentication
 {
     public class AuthenticationDelegatingHandler : DelegatingHandler
     {
-        private Dictionary<string, string> TenantLookup;
+        private readonly Dictionary<string, bool> UriAuthRequiredLookup;
+        private readonly Dictionary<string, string> TenantLookup;
         private const string TenantLookupFileName = "tenantlookup.bin";
+        private const string UriLookupFileName = "urilookup.bin";
 
         public AuthenticationDelegatingHandler()
             : base(new SocketsHttpHandler
@@ -23,20 +25,25 @@ namespace maa.perf.test.core.Authentication
             })
         {
             TenantLookup = SerializationHelper.ReadFromFile<Dictionary<string, string>>(TenantLookupFileName);
+            UriAuthRequiredLookup = SerializationHelper.ReadFromFile<Dictionary<string, bool>>(UriLookupFileName);
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            string aadTenant = null;
-            string accessToken = null;
+            string aadTenant;
+            string accessToken;
             string hostName = request.RequestUri.Host;
+            string requestUri = request.RequestUri.AbsoluteUri;
+            bool authenticationRequired = UriAuthRequiredLookup.ContainsKey(requestUri) && UriAuthRequiredLookup[requestUri];
+            bool bearerTokenIncluded = false;
 
-            // Get access token if we already know the tenant for the attestation provider
-            if (TenantLookup.ContainsKey(hostName))
+            // Get access token if auth is required and we already know the tenant for the attestation provider
+            if (authenticationRequired && TenantLookup.ContainsKey(hostName))
             {
                 aadTenant = TenantLookup[hostName];
                 accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant, false);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                bearerTokenIncluded = true;
             }
 
             // Call service
@@ -48,17 +55,34 @@ namespace maa.perf.test.core.Authentication
             // So, take note of current AAD tenant value, re-authenticate and retry
             if ((response.StatusCode == System.Net.HttpStatusCode.Unauthorized))
             {
+                // Remember that authentication is required for this URI
+                UriAuthRequiredLookup[requestUri] = true;
+                SerializationHelper.WriteToFile(UriLookupFileName, UriAuthRequiredLookup);
+
                 // Always record AAD tenant for hostname (in edge cases it can move)
                 aadTenant = ParseAadTenant(response.Headers.GetValues("WWW-Authenticate").FirstOrDefault());
                 TenantLookup[hostName] = aadTenant;
                 SerializationHelper.WriteToFile(TenantLookupFileName, TenantLookup);
 
-                // Authenticate with AAD
+                // Authenticate with AAD and set bearer token
                 accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant, true);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                bearerTokenIncluded = true;
 
                 // Retry one time
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 response = await base.SendAsync(request, cancellationToken);
+            }
+
+            // If we succeeded without authentication, ensure that we remember that authentication
+            // is not required for this URI
+            if (response.IsSuccessStatusCode && !bearerTokenIncluded)
+            {
+                if (!UriAuthRequiredLookup.ContainsKey(requestUri) || UriAuthRequiredLookup[requestUri])
+                {
+                    // Remember that authentication is NOT required for this URI
+                    UriAuthRequiredLookup[request.RequestUri.AbsoluteUri] = false;
+                    SerializationHelper.WriteToFile(UriLookupFileName, UriAuthRequiredLookup);
+                }
             }
 
             return response;

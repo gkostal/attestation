@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using maa.perf.test.core.Authentication;
@@ -13,11 +14,21 @@ namespace maa.perf.test.core.Maa
         private bool forceReconnects;
 
         public HttpClient MyHttpClient =>
-            forceReconnects ? new HttpClient(new AuthenticationDelegatingHandler()) : theHttpClient;
+            forceReconnects ? new HttpClient(GetHttpRequestHandler()) : theHttpClient;
 
         static MaaService()
         {
-            theHttpClient = new HttpClient(new AuthenticationDelegatingHandler());
+            theHttpClient = new HttpClient(GetHttpRequestHandler());
+        }
+
+        public static DelegatingHandler GetHttpRequestHandler()
+        {
+            return new FailureInjectionDelegatingHandler(
+                new AuthenticationDelegatingHandler(), 
+                new List<Tuple<string, string>>()
+                {
+                    //new Tuple<string, string>("Report", "Quote"), 
+                });
         }
 
         public MaaService(string providerDnsName, bool forceReconnects)

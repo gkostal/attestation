@@ -2,7 +2,7 @@
   "profiles": {
     "maa.perf.test.core": {
       "commandName": "Project",
-      "commandLineArgs": "-p sharedwus.wus.attest.azure.net -c 1 -r 1 -f"
+      "commandLineArgs": "-p sharedwus.wus.test.attest.azure.net -c 1 -r 1 -f"
     }
   }
 }

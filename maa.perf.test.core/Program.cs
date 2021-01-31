@@ -28,6 +28,15 @@ namespace maa.perf.test.core
             [Option('q', "quote", Required = false, HelpText = "Enclave info file containing the SGX quote.")]
             public string EnclaveInfoFile { get; set; }
 
+            [Option('o', "port", Required = false, HelpText = "Override service port number (default is 443).")]
+            public string ServicePort { get; set; }
+
+            [Option('t', "tenant", Required = false, HelpText = "Override tenant name (default extracted from DNS name).")]
+            public string TenantName { get; set; }
+
+            [Option('h', "http", Required = false, HelpText = "Connect via HTTP (default is HTTPS).")]
+            public bool UseHttp { get; set; }
+
             [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
             public bool Verbose { get; set; }
 
@@ -40,6 +49,24 @@ namespace maa.perf.test.core
                 TargetRPS = 1;
                 ForceReconnects = false;
                 UsePreviewApiVersion = false;
+                ServicePort = "443";
+                UseHttp = false;
+                TenantName = null;
+            }
+
+            public void Trace()
+            {
+                Tracer.TraceInfo($"");
+                Tracer.TraceInfo($"Attestation Provider     : {AttestationProvider}");
+                Tracer.TraceInfo($"Enclave Info File        : {EnclaveInfoFile}");
+                Tracer.TraceInfo($"Simultaneous Connections : {SimultaneousConnections}");
+                Tracer.TraceInfo($"Target RPS               : {TargetRPS}");
+                Tracer.TraceInfo($"Force Reconnects         : {ForceReconnects}");
+                Tracer.TraceInfo($"Use Preview API Version  : {UsePreviewApiVersion}");
+                Tracer.TraceInfo($"Service port             : {ServicePort}");
+                Tracer.TraceInfo($"Tenant Name Override     : {TenantName}");
+                Tracer.TraceInfo($"Use HTTP                 : {UseHttp}");
+                Tracer.TraceInfo($"");
             }
         }
 
@@ -64,13 +91,9 @@ namespace maa.perf.test.core
 
             Tracer.CurrentTracingLevel = _options.Verbose ? TracingLevel.Verbose : TracingLevel.Warning;
             _enclaveInfo = Maa.EnclaveInfo.CreateFromFile(_options.EnclaveInfoFile);
-            _maaService = new Maa.MaaService(_options.AttestationProvider, _options.ForceReconnects);
+            _maaService = new Maa.MaaService(_options.AttestationProvider, _options.ForceReconnects, _options.ServicePort, _options.TenantName, _options.UseHttp);
 
-            Tracer.TraceInfo($"Attestation Provider     : {_options.AttestationProvider}");
-            Tracer.TraceInfo($"Enclave Info File        : {_options.EnclaveInfoFile}");
-            Tracer.TraceInfo($"Simultaneous Connections : {_options.SimultaneousConnections}");
-            Tracer.TraceInfo($"Target RPS               : {_options.TargetRPS}");
-            Tracer.TraceInfo($"Force Reconnects         : {_options.ForceReconnects}");
+            _options.Trace();
         }
 
         public async Task RunAsync()

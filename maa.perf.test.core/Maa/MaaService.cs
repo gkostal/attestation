@@ -12,6 +12,9 @@ namespace maa.perf.test.core.Maa
         private static HttpClient theHttpClient;
         private string providerDnsName;
         private bool forceReconnects;
+        private string servicePortNumber;
+        private string tenantNameOverride;
+        private string uriScheme;
 
         public HttpClient MyHttpClient =>
             forceReconnects ? new HttpClient(GetHttpRequestHandler()) : theHttpClient;
@@ -31,21 +34,24 @@ namespace maa.perf.test.core.Maa
                 });
         }
 
-        public MaaService(string providerDnsName, bool forceReconnects)
+        public MaaService(string providerDnsName, bool forceReconnects, string servicePortNumber, string tenantNameOverride, bool useHttp)
         {
             this.providerDnsName = providerDnsName;
             this.forceReconnects = forceReconnects;
+            this.servicePortNumber = servicePortNumber;
+            this.tenantNameOverride = tenantNameOverride;
+            this.uriScheme = useHttp ? "http" : "https";
         }
 
         public async Task<string> AttestOpenEnclaveAsync(Preview.AttestOpenEnclaveRequestBody requestBody)
         {
-            return await DoAttestOpenEnclaveAsync($"https://{providerDnsName}:443/attest/Tee/OpenEnclave?api-version=2018-09-01-preview", requestBody);
+            return await DoAttestOpenEnclaveAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/attest/Tee/OpenEnclave?api-version=2018-09-01-preview", requestBody);
         }
 
         //2020-10-01
         public async Task<string> AttestOpenEnclaveAsync(Ga.AttestOpenEnclaveRequestBody requestBody)
         {
-            return await DoAttestOpenEnclaveAsync($"https://{providerDnsName}:443/attest/OpenEnclave?api-version=2020-10-01", requestBody);
+            return await DoAttestOpenEnclaveAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
         }
 
         private async Task<string> DoAttestOpenEnclaveAsync(string uri, object bodyObject)
@@ -53,6 +59,12 @@ namespace maa.perf.test.core.Maa
             // Build request
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
             request.Content = new StringContent(JsonConvert.SerializeObject(bodyObject), null, "application/json");
+
+            // Add tenant name override header if requested
+            if (!string.IsNullOrEmpty(tenantNameOverride))
+            {
+                request.Headers.Add("tenantName", tenantNameOverride);
+            }
 
             // Send request
             var response = await MyHttpClient.SendAsync(request);

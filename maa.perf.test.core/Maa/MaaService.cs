@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using maa.perf.test.core.Authentication;
 using Newtonsoft.Json;
@@ -52,6 +53,40 @@ namespace maa.perf.test.core.Maa
         public async Task<string> AttestOpenEnclaveAsync(Ga.AttestOpenEnclaveRequestBody requestBody)
         {
             return await DoAttestOpenEnclaveAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
+        }
+
+        public async Task<string> GetOpenIdConfigurationAsync()
+        {
+            return await DoGetAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/.well-known/openid-configuration?api-version=2020-10-01");
+        }
+
+        public async Task<string> GetCertsAsync()
+        {
+            return await DoGetAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/certs?api-version=2020-10-01");
+        }
+        public async Task<string> GetServiceHealthAsync()
+        {
+            return await DoGetAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/servicehealth?api-version=2020-10-01");
+        }
+
+        private async Task<string> DoGetAsync(string uri, [CallerMemberName] string caller = null)
+        {
+            // Build request
+            var request = new HttpRequestMessage(HttpMethod.Get, uri);
+
+            // Send request
+            var response = await MyHttpClient.SendAsync(request);
+
+            // Analyze failures
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                throw new Exception($"{caller}: MAA service status code {(int)response.StatusCode}.  Details: '{body}'");
+            }
+
+            // Return result
+            var jwt = await response.Content.ReadAsStringAsync();
+            return jwt.Trim('"');
         }
 
         private async Task<string> DoAttestOpenEnclaveAsync(string uri, object bodyObject)

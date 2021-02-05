@@ -1,13 +1,23 @@
 ﻿using System;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using maa.perf.test.core.Utils;
 using CommandLine;
 
 namespace maa.perf.test.core
 {
-    class Program
+    public class Program
     {
+        public enum Api
+        {
+            AttestSgx,
+            AttestOpenEnclave,
+            GetOpenIdConfiguration,
+            GetCerts,
+            GetServiceHealth
+        };
+
         public class Options
         {
             [Option('p', "provider", Required = false, HelpText = "Attestation provider DNS name.")]
@@ -24,6 +34,9 @@ namespace maa.perf.test.core
 
             [Option('w', "previewapiversion", Required = false, HelpText = "Use preview api-version instead of GA.")]
             public bool UsePreviewApiVersion { get; set; }
+
+            [Option('a', "api", Required = false, HelpText = "REST Api to test: {AttestSgx, AttestOpenEnclave, GetOpenIdConfiguration, GetCerts, GetServiceHealth}")]
+            public Api RestApi { get; set; }
 
             [Option('q', "quote", Required = false, HelpText = "Enclave info file containing the SGX quote.")]
             public string EnclaveInfoFile { get; set; }
@@ -52,12 +65,14 @@ namespace maa.perf.test.core
                 ServicePort = "443";
                 UseHttp = false;
                 TenantName = null;
+                RestApi = Api.AttestOpenEnclave;
             }
 
             public void Trace()
             {
                 Tracer.TraceInfo($"");
                 Tracer.TraceInfo($"Attestation Provider     : {AttestationProvider}");
+                Tracer.TraceInfo($"REST Api                 : {RestApi}");
                 Tracer.TraceInfo($"Enclave Info File        : {EnclaveInfoFile}");
                 Tracer.TraceInfo($"Simultaneous Connections : {SimultaneousConnections}");
                 Tracer.TraceInfo($"Target RPS               : {TargetRPS}");
@@ -101,35 +116,62 @@ namespace maa.perf.test.core
             AsyncFor myFor = new AsyncFor(_options.TargetRPS, _options.AttestationProvider);
             myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
             myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
-            await myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, GetAttestCallback());
+            await myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, GetRestApiCallback());
         }
 
-        public Func<Task<double>> GetAttestCallback()
+        public Func<Task<double>> GetRestApiCallback()
         {
-            if (_options.UsePreviewApiVersion)
-                return CallAttestSgxPreviewApiVersion;
-            else
-                return CallAttestSgxGaApiVersion;
+            switch (_options.RestApi)
+            {
+                case Api.AttestOpenEnclave:
+                    if (_options.UsePreviewApiVersion)
+                        return CallAttestSgxPreviewApiVersionAsync;
+                    else
+                        return CallAttestSgxGaApiVersionAsync;
+                case Api.AttestSgx:
+                    return CallAttestSgxGaApiVersionAsync;
+                case Api.GetCerts:
+                    return GetCertsAsync;
+                case Api.GetOpenIdConfiguration:
+                    return GetOpenIdConfigurationAsync;
+                case Api.GetServiceHealth:
+                    return GetServiceHealthAsync;
+                default:
+                    return CallAttestSgxGaApiVersionAsync;
+            }
         }
 
-        public async Task<double> CallAttestSgxPreviewApiVersion()
+
+        public async Task<double> CallAttestSgxPreviewApiVersionAsync()
+        {
+            return await WrapServiceCallAsync(async () => await _maaService.AttestOpenEnclaveAsync(new Maa.Preview.AttestOpenEnclaveRequestBody(_enclaveInfo)));
+        }
+
+        public async Task<double> CallAttestSgxGaApiVersionAsync()
+        {
+            return await WrapServiceCallAsync(async () => await _maaService.AttestOpenEnclaveAsync(new Maa.Ga.AttestOpenEnclaveRequestBody(_enclaveInfo)));
+        }
+
+        public async Task<double> GetCertsAsync()
+        {
+            return await WrapServiceCallAsync(async () => await _maaService.GetCertsAsync());
+        }
+
+        public async Task<double> GetOpenIdConfigurationAsync()
+        {
+            return await WrapServiceCallAsync(async () => await _maaService.GetOpenIdConfigurationAsync());
+        }
+
+        public async Task<double> GetServiceHealthAsync()
+        {
+            return await WrapServiceCallAsync(async () => await _maaService.GetServiceHealthAsync());
+        }
+
+        private async Task<double> WrapServiceCallAsync(Func<Task<string>> callServiceAsync)
         {
             try
             {
-                await _maaService.AttestOpenEnclaveAsync(new Maa.Preview.AttestOpenEnclaveRequestBody(_enclaveInfo));
-            }
-            catch (Exception x)
-            {
-                Tracer.TraceError($"Exception caught: {x.ToString()}");
-            }
-
-            return await Task.FromResult(0.0);
-        }
-        public async Task<double> CallAttestSgxGaApiVersion()
-        {
-            try
-            {
-                await _maaService.AttestOpenEnclaveAsync(new Maa.Ga.AttestOpenEnclaveRequestBody(_enclaveInfo));
+                await callServiceAsync();
             }
             catch (Exception x)
             {

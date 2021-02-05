@@ -21,8 +21,8 @@ namespace maa.perf.test.core.Authentication
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            var originalHeaders = request.Content.Headers;
-            if (originalHeaders.ContentType != null)
+            var originalHeaders = request.Content?.Headers;
+            if (originalHeaders?.ContentType != null)
             {
                 if ((originalHeaders.ContentType.MediaType == "application/json") ||
                     (originalHeaders.ContentType.MediaType == "text/plain"))

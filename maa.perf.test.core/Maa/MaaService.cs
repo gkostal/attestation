@@ -64,9 +64,15 @@ namespace maa.perf.test.core.Maa
         {
             return await DoGetAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/certs?api-version=2020-10-01");
         }
+
         public async Task<string> GetServiceHealthAsync()
         {
             return await DoGetAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/servicehealth?api-version=2020-10-01");
+        }
+
+        public async Task<string> GetUrlAsync(string url)
+        {
+            return await DoGetAsync(url);
         }
 
         private async Task<string> DoGetAsync(string uri, [CallerMemberName] string caller = null)

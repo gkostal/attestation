@@ -20,37 +20,40 @@ namespace maa.perf.test.core
 
         public class Options
         {
-            [Option('p', "provider", Required = false, HelpText = "Attestation provider DNS name.")]
+            [Option('p', "provider", Required = false, HelpText = "Attestation provider DNS name")]
             public string AttestationProvider { get; set; }
 
-            [Option('c', "connections", Required = false, HelpText = "Number of simultaneous connections (and calls) to the MAA service.")]
+            [Option('c', "connections", Required = false, HelpText = "Number of simultaneous connections (and calls) to the MAA service")]
             public long  SimultaneousConnections { get; set; }
 
-            [Option('r', "rps", Required = false, HelpText = "Target RPS.")]
+            [Option('r', "rps", Required = false, HelpText = "Target RPS")]
             public long TargetRPS { get; set; }
 
-            [Option('f', "forcereconnects", Required = false, HelpText = "Force reconnects on each request.")]
+            [Option('f', "forcereconnects", Required = false, HelpText = "Force reconnects on each request")]
             public bool ForceReconnects { get; set; }
 
-            [Option('w', "previewapiversion", Required = false, HelpText = "Use preview api-version instead of GA.")]
+            [Option('w', "previewapiversion", Required = false, HelpText = "Use preview api-version instead of GA")]
             public bool UsePreviewApiVersion { get; set; }
 
             [Option('a', "api", Required = false, HelpText = "REST Api to test: {AttestSgx, AttestOpenEnclave, GetOpenIdConfiguration, GetCerts, GetServiceHealth}")]
             public Api RestApi { get; set; }
 
-            [Option('q', "quote", Required = false, HelpText = "Enclave info file containing the SGX quote.")]
+            [Option('q', "quote", Required = false, HelpText = "Enclave info file containing the SGX quote")]
             public string EnclaveInfoFile { get; set; }
 
-            [Option('o', "port", Required = false, HelpText = "Override service port number (default is 443).")]
+            [Option('o', "port", Required = false, HelpText = "Override service port number (default is 443)")]
             public string ServicePort { get; set; }
 
-            [Option('t', "tenant", Required = false, HelpText = "Override tenant name (default extracted from DNS name).")]
+            [Option('t', "tenant", Required = false, HelpText = "Override tenant name (default extracted from DNS name)")]
             public string TenantName { get; set; }
 
-            [Option('h', "http", Required = false, HelpText = "Connect via HTTP (default is HTTPS).")]
+            [Option('h', "http", Required = false, HelpText = "Connect via HTTP (default is HTTPS)")]
             public bool UseHttp { get; set; }
 
-            [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
+            [Option('u', "url", Required = false, HelpText = "Load test a HTTP GET request for the provided URL")]
+            public string Url { get; set; }
+
+            [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages")]
             public bool Verbose { get; set; }
 
             public Options()
@@ -66,6 +69,7 @@ namespace maa.perf.test.core
                 UseHttp = false;
                 TenantName = null;
                 RestApi = Api.AttestOpenEnclave;
+                Url = null;
             }
 
             public void Trace()
@@ -81,6 +85,7 @@ namespace maa.perf.test.core
                 Tracer.TraceInfo($"Service port             : {ServicePort}");
                 Tracer.TraceInfo($"Tenant Name Override     : {TenantName}");
                 Tracer.TraceInfo($"Use HTTP                 : {UseHttp}");
+                Tracer.TraceInfo($"Url                      : {Url}");
                 Tracer.TraceInfo($"");
             }
         }
@@ -121,23 +126,30 @@ namespace maa.perf.test.core
 
         public Func<Task<double>> GetRestApiCallback()
         {
-            switch (_options.RestApi)
+            if (!string.IsNullOrEmpty(_options.Url))
             {
-                case Api.AttestOpenEnclave:
-                    if (_options.UsePreviewApiVersion)
-                        return CallAttestSgxPreviewApiVersionAsync;
-                    else
+                return GetUrlAsync;
+            }
+            else
+            {
+                switch (_options.RestApi)
+                {
+                    case Api.AttestOpenEnclave:
+                        if (_options.UsePreviewApiVersion)
+                            return CallAttestSgxPreviewApiVersionAsync;
+                        else
+                            return CallAttestSgxGaApiVersionAsync;
+                    case Api.AttestSgx:
                         return CallAttestSgxGaApiVersionAsync;
-                case Api.AttestSgx:
-                    return CallAttestSgxGaApiVersionAsync;
-                case Api.GetCerts:
-                    return GetCertsAsync;
-                case Api.GetOpenIdConfiguration:
-                    return GetOpenIdConfigurationAsync;
-                case Api.GetServiceHealth:
-                    return GetServiceHealthAsync;
-                default:
-                    return CallAttestSgxGaApiVersionAsync;
+                    case Api.GetCerts:
+                        return GetCertsAsync;
+                    case Api.GetOpenIdConfiguration:
+                        return GetOpenIdConfigurationAsync;
+                    case Api.GetServiceHealth:
+                        return GetServiceHealthAsync;
+                    default:
+                        return CallAttestSgxGaApiVersionAsync;
+                }
             }
         }
 
@@ -165,6 +177,11 @@ namespace maa.perf.test.core
         public async Task<double> GetServiceHealthAsync()
         {
             return await WrapServiceCallAsync(async () => await _maaService.GetServiceHealthAsync());
+        }
+
+        public async Task<double> GetUrlAsync()
+        {
+            return await WrapServiceCallAsync(async () => await _maaService.GetUrlAsync(_options.Url));
         }
 
         private async Task<double> WrapServiceCallAsync(Func<Task<string>> callServiceAsync)

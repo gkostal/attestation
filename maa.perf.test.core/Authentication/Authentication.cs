@@ -66,7 +66,6 @@ namespace maa.perf.test.core.Authentication
                     {
                         accessToken = (await ctx.AcquireTokenSilentAsync(resource, clientId)).AccessToken;
                         _acceleratedCache[tenant] = accessToken;
-
                     }
                     catch (AdalException x)
                     {

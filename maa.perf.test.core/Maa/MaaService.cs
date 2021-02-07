@@ -46,13 +46,13 @@ namespace maa.perf.test.core.Maa
 
         public async Task<string> AttestOpenEnclaveAsync(Preview.AttestOpenEnclaveRequestBody requestBody)
         {
-            return await DoAttestOpenEnclaveAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/attest/Tee/OpenEnclave?api-version=2018-09-01-preview", requestBody);
+            return await DoPostAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/attest/Tee/OpenEnclave?api-version=2018-09-01-preview", requestBody);
         }
 
         //2020-10-01
         public async Task<string> AttestOpenEnclaveAsync(Ga.AttestOpenEnclaveRequestBody requestBody)
         {
-            return await DoAttestOpenEnclaveAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
+            return await DoPostAsync($"{uriScheme}://{providerDnsName}:{servicePortNumber}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
         }
 
         public async Task<string> GetOpenIdConfigurationAsync()
@@ -91,11 +91,10 @@ namespace maa.perf.test.core.Maa
             }
 
             // Return result
-            var jwt = await response.Content.ReadAsStringAsync();
-            return jwt.Trim('"');
+            return await response.Content.ReadAsStringAsync();
         }
 
-        private async Task<string> DoAttestOpenEnclaveAsync(string uri, object bodyObject)
+        private async Task<string> DoPostAsync(string uri, object bodyObject)
         {
             // Build request
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
@@ -118,8 +117,7 @@ namespace maa.perf.test.core.Maa
             }
 
             // Return result
-            var jwt = await response.Content.ReadAsStringAsync();
-            return jwt.Trim('"');
+            return (await response.Content.ReadAsStringAsync()).Trim('"');
         }
     }
 }

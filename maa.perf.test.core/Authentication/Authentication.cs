@@ -1,34 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using maa.perf.test.core.Utils;
+using Microsoft.Identity.Client;
 
 namespace maa.perf.test.core.Authentication
 {
     public class Authentication
     {
-        private const string resource = "https://attest.azure.net";
+        private const string authorityPrefix = "https://login.microsoftonline.com/";
         private const string clientId = "1950a258-227b-4e31-a9cf-717495945fc2";
-        private const string TokenCacheFileName = "tokencache.bin";
+        private static readonly string[] scopes = new []{ "https://attest.azure.net/.default" };
+
         private const string AcceleratedTokenCacheFileName = "acceleratedcache.bin";
         private static Dictionary<string, string> _acceleratedCache;
-        private static TokenCache _tokenCache;
         private static object _lock = new object();
         private static bool _processingInFlight = false;
 
-        private class ByteArrayWrapper
-        {
-            public byte[] theBytes;
-        }
-
         static Authentication()
         {
-            var baw = SerializationHelper.ReadFromFile<ByteArrayWrapper>(TokenCacheFileName);
-            _tokenCache = new TokenCache();
-            _tokenCache.DeserializeAdalV3(baw.theBytes);
-
             _acceleratedCache = SerializationHelper.ReadFromFile<Dictionary<string, string>>(AcceleratedTokenCacheFileName);
         }
 
@@ -60,29 +51,31 @@ namespace maa.perf.test.core.Authentication
                 }
                 else
                 {
-                    var ctx = new AuthenticationContext($"https://login.windows.net/{tenant}", _tokenCache);
+                    var publicApplication = PublicClientApplicationBuilder.Create(clientId)
+                        .WithAuthority($"{authorityPrefix}{tenant}")
+                        .WithDefaultRedirectUri()
+                        .Build();
 
+                    AuthenticationResult result;
                     try
                     {
-                        accessToken = (await ctx.AcquireTokenSilentAsync(resource, clientId)).AccessToken;
-                        _acceleratedCache[tenant] = accessToken;
+                        var accounts = await publicApplication.GetAccountsAsync();
+                        Tracer.TraceInfo($"Authentication: Number of accounts: {accounts?.Count()}");
+                        result = await publicApplication
+                            .AcquireTokenSilent(scopes, accounts.FirstOrDefault())
+                            .ExecuteAsync();
                     }
-                    catch (AdalException x)
+                    catch (MsalUiRequiredException ex)
                     {
-                        Tracer.TraceRaw($"");
-                        Tracer.TraceRaw($"Silent token acquisition failed.");
-                        Tracer.TraceRaw($"ADAL Exception: {x.Message}");
-                        Tracer.TraceRaw($"Retrieving token via device code authentication now.");
-                        Tracer.TraceRaw($"");
-
-                        DeviceCodeResult codeResult = await ctx.AcquireDeviceCodeAsync(resource, clientId);
-                        Tracer.TraceRaw("Please sign into your AAD account.");
-                        Tracer.TraceRaw($"{codeResult.Message}");
-                        Tracer.TraceRaw("");
-                        Tracer.TraceRaw($"");
-                        accessToken = (await ctx.AcquireTokenByDeviceCodeAsync(codeResult)).AccessToken;
-                        SerializationHelper.WriteToFile(TokenCacheFileName, new ByteArrayWrapper { theBytes = _tokenCache.SerializeAdalV3() });
+                        result = await publicApplication
+                            .AcquireTokenInteractive(scopes)
+                            .WithClaims(ex.Claims)
+                            .ExecuteAsync();
                     }
+
+                    accessToken = result.AccessToken;
+                    _acceleratedCache[tenant] = accessToken;
+                    SerializationHelper.WriteToFile(AcceleratedTokenCacheFileName, _acceleratedCache);
                 }
             }
             finally

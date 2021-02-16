@@ -53,6 +53,9 @@ namespace maa.perf.test.core
             [Option('u', "url", Required = false, HelpText = "Load test a HTTP GET request for the provided URL")]
             public string Url { get; set; }
 
+            [Option('m', "rampup", Required = false, HelpText = "Ramp up time in seconds")]
+            public int RampUp { get; set; }
+
             [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages")]
             public bool Verbose { get; set; }
 
@@ -70,6 +73,7 @@ namespace maa.perf.test.core
                 TenantName = null;
                 RestApi = Api.AttestOpenEnclave;
                 Url = null;
+                RampUp = 0;
             }
 
             public void Trace()
@@ -86,6 +90,7 @@ namespace maa.perf.test.core
                 Tracer.TraceInfo($"Tenant Name Override     : {TenantName}");
                 Tracer.TraceInfo($"Use HTTP                 : {UseHttp}");
                 Tracer.TraceInfo($"Url                      : {Url}");
+                Tracer.TraceInfo($"RampUp                   : {RampUp}");
                 Tracer.TraceInfo($"");
             }
         }
@@ -118,6 +123,25 @@ namespace maa.perf.test.core
 
         public async Task RunAsync()
         {
+            // Handle ramp up if defined
+            if (_options.RampUp > 4)
+            {
+                DateTime startTime = DateTime.Now;
+                DateTime endTime = startTime + TimeSpan.FromSeconds(_options.RampUp);
+                int numberIntervals = Math.Min(_options.RampUp / 5, 6);
+                TimeSpan intervalLength = (endTime - startTime) / numberIntervals;
+                double intervalRpsDelta = ((double)_options.TargetRPS) / ((double)numberIntervals);
+                for (int i=0; i<numberIntervals; i++)
+                {
+                    long intervalRps = (long) Math.Round((i + 1) * intervalRpsDelta);
+                    Tracer.TraceInfo($"Ramping up. RPS = {intervalRps}");
+                    AsyncFor myRampUpFor = new AsyncFor(intervalRps, _options.AttestationProvider);
+                    myRampUpFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
+                    await myRampUpFor.For(intervalLength, _options.SimultaneousConnections, GetRestApiCallback());
+                }
+            }
+
+            Tracer.TraceInfo($"Running at RPS = {_options.TargetRPS}");
             AsyncFor myFor = new AsyncFor(_options.TargetRPS, _options.AttestationProvider);
             myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
             myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;

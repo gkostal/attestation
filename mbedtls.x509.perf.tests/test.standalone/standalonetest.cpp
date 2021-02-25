@@ -11,8 +11,8 @@ const mbedtls_x509_crt_profile StandaloneTest::mbedtls_x509_crt_profile_test =
     1024,
 };
 
-StandaloneTest::StandaloneTest(int maxThreads, int secondsPerTestPass)
-    : MultiThreadingTest("Standalone", maxThreads, secondsPerTestPass)
+StandaloneTest::StandaloneTest(int minThreads, int maxThreads, int secondsPerTestPass)
+    : MultiThreadingTest("Standalone", minThreads, maxThreads, secondsPerTestPass)
 {
 }
 

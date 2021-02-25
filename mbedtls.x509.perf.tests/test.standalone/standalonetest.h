@@ -5,7 +5,7 @@
 class StandaloneTest : public MultiThreadingTest
 {
 public:
-    StandaloneTest(int maxThreads, int secondsPerTestPass);
+    StandaloneTest(int minThreads, int maxThreads, int secondsPerTestPass);
     void RunTestOnThisThread();
 
 private:

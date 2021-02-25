@@ -8,7 +8,7 @@
 class MultiThreadingTest
 {
 public:
-	MultiThreadingTest(std::string testType, int maxThreads, int secondsPerTestPass);
+	MultiThreadingTest(std::string testType, int minThreads, int maxThreads, int secondsPerTestPass);
 
 	/// <summary>
 	/// Start the uber test run
@@ -44,6 +44,7 @@ private:
 	void ResetState();
 	void PrintfCsvImpl(const char* const format, ...);
 
+	int _minThreads;
 	int _maxThreads;
 	int _secondsPerTestPass;
 	std::string _testType;

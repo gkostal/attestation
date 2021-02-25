@@ -1,8 +1,9 @@
 #include "multithreadingtest.h"
 
-MultiThreadingTest::MultiThreadingTest(std::string testType, int maxThreads, int secondsPerTestPass)
+MultiThreadingTest::MultiThreadingTest(std::string testType, int minThreads, int maxThreads, int secondsPerTestPass)
 	: 
     _testType(testType), 
+    _minThreads(minThreads),
     _maxThreads(maxThreads), 
     _secondsPerTestPass(secondsPerTestPass), 
     _stopTestNow(false), 
@@ -81,7 +82,7 @@ void MultiThreadingTest::RunAllTestsNow()
 
     PrintfCsvImpl("Thread Count, Total Time, Total Count, Total RPS, RPS Per Thread\n");
 
-    for (int i = 1; i <= _maxThreads; i++)
+    for (int i = _minThreads; i <= _maxThreads; i++)
     {
         HANDLE* ahThread = (HANDLE*)calloc(i, sizeof(HANDLE));
         Timer myTimer;

@@ -2,10 +2,11 @@
 
 int main()
 {
+    const int minNumberThreads = 1;
     const int maxNumberThreads = 8;
     const int numberSecondsPerTestPass = 6;
 
-    StandaloneTest myTestManager(maxNumberThreads, numberSecondsPerTestPass);
+    StandaloneTest myTestManager(minNumberThreads, maxNumberThreads, numberSecondsPerTestPass);
 
     myTestManager.RunAllTestsNow();
 }

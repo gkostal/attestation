@@ -7,8 +7,8 @@ extern "C" {
     int call_enclave_stopTesting();
 }
 
-EnclaveTest::EnclaveTest(int maxThreads, int secondsPerTestPass)
-    : MultiThreadingTest("EnclaveHosted", maxThreads, secondsPerTestPass)
+EnclaveTest::EnclaveTest(int minThreads, int maxThreads, int secondsPerTestPass)
+    : MultiThreadingTest("EnclaveHosted", minThreads, maxThreads, secondsPerTestPass)
 {
     create_enclave();
 }

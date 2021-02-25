@@ -4,7 +4,7 @@
 class EnclaveTest : public MultiThreadingTest
 {
 public:
-    EnclaveTest(int maxThreads, int secondsPerTestPass);
+    EnclaveTest(int minThreads, int maxThreads, int secondsPerTestPass);
     ~EnclaveTest();
     void RunTestOnThisThread();
     void StopTestsNow();

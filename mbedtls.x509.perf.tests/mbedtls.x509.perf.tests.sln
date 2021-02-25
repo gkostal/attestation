@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mbedTlsTestEnclave", "mbedT
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test.shared.lib", "test.shared.lib\test.shared.lib.vcxproj", "{01A98F91-08F4-40B2-A6F2-E67B58C2FB10}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test.enclave", "test.enclave\test.enclave.vcxproj", "{2B491C65-2392-4082-8114-93B9432DEF13}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -33,6 +35,10 @@ Global
 		{01A98F91-08F4-40B2-A6F2-E67B58C2FB10}.Debug|x64.Build.0 = Debug|x64
 		{01A98F91-08F4-40B2-A6F2-E67B58C2FB10}.Release|x64.ActiveCfg = Release|x64
 		{01A98F91-08F4-40B2-A6F2-E67B58C2FB10}.Release|x64.Build.0 = Release|x64
+		{2B491C65-2392-4082-8114-93B9432DEF13}.Debug|x64.ActiveCfg = Debug|x64
+		{2B491C65-2392-4082-8114-93B9432DEF13}.Debug|x64.Build.0 = Debug|x64
+		{2B491C65-2392-4082-8114-93B9432DEF13}.Release|x64.ActiveCfg = Release|x64
+		{2B491C65-2392-4082-8114-93B9432DEF13}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31005.135
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test.standalone", "test.standalone\test.standalone.vcxproj", "{1D7E34D6-32D6-4AA7-85D5-1D785EBC250E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mbedTLS", "mbedtls-2.25.0\visualc\VS2010\mbedTLS.vcxproj", "{46CF2D25-6A36-4189-B59C-E4815388E554}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mbedTlsTestEnclave", "mbedTlsTestEnclave\mbedTlsTestEnclave.vcxproj", "{90B152E6-503F-4CF7-B3A9-0772A2AD9B7F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1D7E34D6-32D6-4AA7-85D5-1D785EBC250E}.Debug|x64.ActiveCfg = Debug|x64
+		{1D7E34D6-32D6-4AA7-85D5-1D785EBC250E}.Debug|x64.Build.0 = Debug|x64
+		{1D7E34D6-32D6-4AA7-85D5-1D785EBC250E}.Release|x64.ActiveCfg = Release|x64
+		{1D7E34D6-32D6-4AA7-85D5-1D785EBC250E}.Release|x64.Build.0 = Release|x64
+		{46CF2D25-6A36-4189-B59C-E4815388E554}.Debug|x64.ActiveCfg = Debug|x64
+		{46CF2D25-6A36-4189-B59C-E4815388E554}.Debug|x64.Build.0 = Debug|x64
+		{46CF2D25-6A36-4189-B59C-E4815388E554}.Release|x64.ActiveCfg = Release|x64
+		{46CF2D25-6A36-4189-B59C-E4815388E554}.Release|x64.Build.0 = Release|x64
+		{90B152E6-503F-4CF7-B3A9-0772A2AD9B7F}.Debug|x64.ActiveCfg = Debug|x64
+		{90B152E6-503F-4CF7-B3A9-0772A2AD9B7F}.Debug|x64.Build.0 = Debug|x64
+		{90B152E6-503F-4CF7-B3A9-0772A2AD9B7F}.Release|x64.ActiveCfg = Release|x64
+		{90B152E6-503F-4CF7-B3A9-0772A2AD9B7F}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B9C96A45-BA37-45FF-A3F8-858D613B830A}
+	EndGlobalSection
+EndGlobal

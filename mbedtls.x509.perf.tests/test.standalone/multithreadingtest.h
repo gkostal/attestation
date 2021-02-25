@@ -1,5 +1,7 @@
 #pragma once
 #include <string>
+#include <iostream>
+#include <fstream>
 #include <windows.h>
 #include "timer.h"
 
@@ -40,10 +42,13 @@ public:
 private:
 	static DWORD WINAPI ThreadStart(LPVOID lpParam);
 	void ResetState();
+	void PrintfCsvImpl(const char* const format, ...);
 
 	int _maxThreads;
 	int _secondsPerTestPass;
 	std::string _testType;
+	std::string _buildType;
+	std::string _csvFileName;
 	bool _stopTestNow;
 	long _successCount;
 	long _totalCount;

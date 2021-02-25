@@ -5,6 +5,9 @@
 class StandaloneTest : public MultiThreadingTest
 {
 public:
-    StandaloneTest(std::string testType, int maxThreads, int secondsPerTestPass) : MultiThreadingTest(testType, maxThreads, secondsPerTestPass) {}
+    StandaloneTest(int maxThreads, int secondsPerTestPass);
     void RunTestOnThisThread();
+
+private:
+    const static mbedtls_x509_crt_profile mbedtls_x509_crt_profile_test;
 };

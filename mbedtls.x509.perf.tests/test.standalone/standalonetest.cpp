@@ -1,6 +1,6 @@
 #include "standalonetest.h"
 
-const mbedtls_x509_crt_profile mbedtls_x509_crt_profile_test =
+const mbedtls_x509_crt_profile StandaloneTest::mbedtls_x509_crt_profile_test =
 {
     MBEDTLS_X509_ID_FLAG(MBEDTLS_MD_SHA224) |
     MBEDTLS_X509_ID_FLAG(MBEDTLS_MD_SHA256) |
@@ -10,6 +10,11 @@ const mbedtls_x509_crt_profile mbedtls_x509_crt_profile_test =
     0xFFFFFFF,
     1024,
 };
+
+StandaloneTest::StandaloneTest(int maxThreads, int secondsPerTestPass)
+    : MultiThreadingTest("Standalone", maxThreads, secondsPerTestPass)
+{
+}
 
 void StandaloneTest::RunTestOnThisThread()
 {

@@ -18,9 +18,21 @@
     <ClCompile Include="test.standalone.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="multithreadingtest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="standalonetest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MyTimer.h">
+    <ClInclude Include="timer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="multithreadingtest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="standalonetest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

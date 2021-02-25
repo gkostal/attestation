@@ -1,10 +1,11 @@
 #pragma once
-
 #include <iostream>
 #include <chrono>
 
-// Helper class pulled from stack overflow
-// https://stackoverflow.com/questions/728068/how-to-calculate-a-time-difference-in-c
+/// <summary>
+/// Helper class pulled from stack overflow:
+/// https://stackoverflow.com/questions/728068/how-to-calculate-a-time-difference-in-c
+/// </summary>
 class Timer
 {
 public:

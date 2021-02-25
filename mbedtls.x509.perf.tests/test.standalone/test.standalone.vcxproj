@@ -141,6 +141,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="multithreadingtest.cpp" />
+    <ClCompile Include="standalonetest.cpp" />
     <ClCompile Include="test.standalone.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -149,7 +151,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MyTimer.h" />
+    <ClInclude Include="multithreadingtest.h" />
+    <ClInclude Include="standalonetest.h" />
+    <ClInclude Include="timer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

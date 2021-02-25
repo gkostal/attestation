@@ -42,6 +42,8 @@ void StandaloneTest::RunTestOnThisThread()
             PrintfImpl("mbedtls_x509_crt_verify_with_profile returned %u\n", ret2);
         }
 
+        mbedtls_x509_crt_free(&crt);
+
         if ((ret1 == 0) && (ret2 == 0)) {
             successCount++;
         }

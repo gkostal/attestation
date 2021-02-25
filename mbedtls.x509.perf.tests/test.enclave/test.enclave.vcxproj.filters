@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{8d66cbd8-ce5a-42ac-9325-100aeb08e0ed}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="test.enclave.cpp">
@@ -21,10 +24,30 @@
     <ClCompile Include="enclavetest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="mbedTlsTestEnclave_u.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mbedTlsTestEnclave_host.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="enclavetest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="mbedTlsTestEnclave_u.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mbedTlsTestEnclave_args.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EdlItem Include="..\mbedTlsTestEnclave\mbedTlsTestEnclave.edl">
+      <Filter>Source Files</Filter>
+    </EdlItem>
   </ItemGroup>
 </Project>

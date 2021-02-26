@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include "mbedTlsTestEnclave_t.h"
 
-#define HEAP_SIZE_BYTES (2 * 1024 * 1024) /* 2 MB */
-#define STACK_SIZE_BYTES (24 * 1024)      /* 24 KB */
+#define HEAP_SIZE_BYTES (1 * 1024 * 1024) /* 2 MB */
+#define STACK_SIZE_BYTES (48 * 1024)      /* 24 KB */
 
 #define SGX_PAGE_SIZE (4 * 1024)
 
@@ -24,9 +24,11 @@ OE_SET_ENCLAVE_SGX(
 #else
     0, /* Debug */
 #endif
-    HEAP_SIZE_BYTES / SGX_PAGE_SIZE,  /* NumHeapPages */
-    STACK_SIZE_BYTES / SGX_PAGE_SIZE, /* NumStackPages */
-    12);                              /* NumTCS */
+    //HEAP_SIZE_BYTES / SGX_PAGE_SIZE,  /* NumHeapPages */
+    //STACK_SIZE_BYTES / SGX_PAGE_SIZE, /* NumStackPages */
+    4096,
+    16,
+    9);                              /* NumTCS */
 
 int IMPL_mbedTlsTestMethod();
 int IMPL_stopTesting();

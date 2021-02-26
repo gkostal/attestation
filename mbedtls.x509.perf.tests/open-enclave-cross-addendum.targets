@@ -1,0 +1,31 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <Choose>
+        <When Condition="'$(Configuration)' == 'Debug-Default' Or '$(Configuration)' == 'Debug-Oesnmalloc'">
+            <PropertyGroup>
+                <OEIsDebug>True</OEIsDebug>
+                <OEIsRelease>False</OEIsRelease>
+
+                <OELibSuffix>Debug</OELibSuffix>
+                <OEConfigurationPathSegment>debug</OEConfigurationPathSegment>
+            </PropertyGroup>
+        </When>
+        <When Condition="'$(Configuration)' == 'Release-Default' Or '$(Configuration)' == 'Release-Oesnmalloc'">
+            <PropertyGroup>
+                <OEIsDebug>False</OEIsDebug>
+                <OEIsRelease>True</OEIsRelease>
+
+                <OELibSuffix>Release</OELibSuffix>
+                <OEConfigurationPathSegment>release</OEConfigurationPathSegment>
+            </PropertyGroup>
+        </When>
+    </Choose>
+
+    <PropertyGroup>
+        <OEIsSgx>True</OEIsSgx>
+        <OEIsTz>False</OEIsTz>
+        <OEIsSim>False</OEIsSim>
+        <OEPlatformPathSegment>sgx\default</OEPlatformPathSegment>
+    </PropertyGroup>
+
+</Project>

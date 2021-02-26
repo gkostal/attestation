@@ -15,8 +15,12 @@
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
+[Dd]ebug-Default/
+[Dd]ebug-Oesnmalloc/
 [Rr]elease/
 [Rr]eleases/
+[Rr]elease-Default/
+[Rr]elease-Oesnmalloc/
 x64/
 x86/
 build/

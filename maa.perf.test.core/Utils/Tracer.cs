@@ -12,7 +12,7 @@ namespace maa.perf.test.core.Utils
 
     public class Tracer
     {
-        public static TracingLevel CurrentTracingLevel { get; set; } = TracingLevel.Verbose;
+        public static TracingLevel CurrentTracingLevel { get; set; } = TracingLevel.Info;
 
         public static void TraceVerbose(string message) { Trace(TracingLevel.Verbose, message); }
         public static void TraceInfo(string message) { Trace(TracingLevel.Info, message); }

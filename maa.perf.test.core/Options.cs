@@ -1,5 +1,6 @@
 ﻿using maa.perf.test.core.Utils;
 using CommandLine;
+using System;
 
 namespace maa.perf.test.core
 {
@@ -12,7 +13,7 @@ namespace maa.perf.test.core
         public long SimultaneousConnections { get; set; }
 
         [Option('r', "rps", Required = false, HelpText = "Target RPS")]
-        public long TargetRPS { get; set; }
+        public double TargetRPS { get; set; }
 
         [Option('f', "forcereconnects", Required = false, HelpText = "Force reconnects on each request")]
         public bool ForceReconnects { get; set; }
@@ -41,6 +42,9 @@ namespace maa.perf.test.core
         [Option('m', "rampup", Required = false, HelpText = "Ramp up time in seconds")]
         public int RampUp { get; set; }
 
+        [Option('x', "mixfile", Required = false, HelpText = "Mix file (JSON, defines mix of API calls)")]
+        public string MixFileName { get; set; }
+
         [Option('z', "providercount", Required = false, HelpText = "Provider count (default = 1)")]
         public int ProviderCount { get; set; }
 
@@ -59,17 +63,20 @@ namespace maa.perf.test.core
             ServicePort = "443";
             UseHttp = false;
             TenantName = null;
-            RestApi = Api.AttestOpenEnclave;
+            RestApi = Api.None;
             Url = null;
             RampUp = 0;
             ProviderCount = 1;
+            MixFileName = null;
         }
 
         public void Trace()
         {
             Tracer.TraceInfo($"");
             Tracer.TraceInfo($"Attestation Provider     : {AttestationProvider}");
+            Tracer.TraceInfo($"ProviderCount            : {ProviderCount}");
             Tracer.TraceInfo($"REST Api                 : {RestApi}");
+            Tracer.TraceInfo($"Mix File Name            : {MixFileName}");
             Tracer.TraceInfo($"Enclave Info File        : {EnclaveInfoFile}");
             Tracer.TraceInfo($"Simultaneous Connections : {SimultaneousConnections}");
             Tracer.TraceInfo($"Target RPS               : {TargetRPS}");
@@ -81,6 +88,24 @@ namespace maa.perf.test.core
             Tracer.TraceInfo($"Url                      : {Url}");
             Tracer.TraceInfo($"RampUp                   : {RampUp}");
             Tracer.TraceInfo($"");
+        }
+
+        public MixFile GetMixFileContents()
+        {
+            var mixFileContents = SerializationHelper.ReadFromFile<MixFile>(MixFileName);
+            var totalPercent = 0.0d;
+
+            foreach (var a in mixFileContents.ApiMix)
+            {
+                totalPercent += a.Percentage;
+            }
+            
+            if (totalPercent > 1.001 || totalPercent < 0.999)
+            {
+                throw new ArgumentException("Mix file content percentages do not add up to 100%!");
+            }
+
+            return mixFileContents;
         }
     }
 }

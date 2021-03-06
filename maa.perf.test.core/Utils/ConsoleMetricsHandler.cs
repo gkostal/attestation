@@ -16,7 +16,7 @@ namespace maa.perf.test.core.Utils
         public void MetricsAvailableHandlerSingleLine(IntervalMetrics metrics)
         {
             Console.WriteLine(
-                "Resource: {0}  , Test: {1}  , Time: {2,-22}, RPS: {3,5:f0}, Average:{4,5}, P50:{5,5}, P90:{6,5}, P95:{7,5}, P99:{8,5}",
+                "Resource: {0}  , Test: {1,-36}  , Time: {2,-22}, RPS: {3,5:f0}, Average:{4,5}, P50:{5,5}, P90:{6,5}, P95:{7,5}, P99:{8,5}",
                 metrics.ResourceDescription, // 0
                 metrics.TestDescription,     // 1
                 metrics.EndTime.ToString(),  // 2

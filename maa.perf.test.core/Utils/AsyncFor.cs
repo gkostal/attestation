@@ -32,7 +32,7 @@ namespace maa.perf.test.core.Utils
         public event IntervalMetricsNotification PerMinuteMetricsAvailable;
         public event IntervalMetricsNotification PerSecondMetricsAvailable;
 
-        public AsyncFor (Func<long> getTps, string resourceDescription)
+        public AsyncFor (Func<double> getTps, string resourceDescription)
         {
             _getTps = getTps;
             _resourceDescription = resourceDescription;
@@ -42,7 +42,7 @@ namespace maa.perf.test.core.Utils
             _throttlingTimer = new Stopwatch();
         }
 
-        public AsyncFor(long maxTPS, string resourceDescription)
+        public AsyncFor(double maxTPS, string resourceDescription)
             : this (() => maxTPS, resourceDescription)
         {
         }
@@ -278,7 +278,7 @@ namespace maa.perf.test.core.Utils
         }
 
         // Desired RPS
-        private Func<long> _getTps;
+        private Func<double> _getTps;
 
         // Global static state
         private bool _enabled = false;

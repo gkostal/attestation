@@ -2,6 +2,7 @@
 {
     public enum Api
     {
+        None,
         AttestSgx,
         AttestOpenEnclave,
         GetOpenIdConfiguration,

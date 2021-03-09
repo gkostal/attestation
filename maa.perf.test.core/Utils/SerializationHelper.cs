@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.IO;
 using System.Reflection;
-using Newtonsoft.Json;
 
 namespace maa.perf.test.core.Utils
 {

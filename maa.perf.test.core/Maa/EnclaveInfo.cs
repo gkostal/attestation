@@ -1,5 +1,4 @@
-﻿using System;
-using maa.perf.test.core.Utils;
+﻿using maa.perf.test.core.Utils;
 
 namespace maa.perf.test.core.Maa
 {

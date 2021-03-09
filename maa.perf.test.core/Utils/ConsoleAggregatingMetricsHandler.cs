@@ -27,7 +27,7 @@ namespace maa.perf.test.core.Utils
             var endTime = metrics.EndTime;
             var duration = metrics.EndTime - _lookbackData[0].EndTime + TimeSpan.FromSeconds(1);
             var currentAggregation = new IntervalMetrics(_lookbackData[0], endTime, duration);
-            for (int i=1; i<_lookbackData.Count; i++)
+            for (int i = 1; i < _lookbackData.Count; i++)
             {
                 currentAggregation.Aggregate(_lookbackData[i]);
             }

@@ -1,12 +1,12 @@
-﻿using System;
+﻿using maa.perf.test.core.Authentication;
+using maa.perf.test.core.Utils;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using maa.perf.test.core.Authentication;
-using maa.perf.test.core.Utils;
-using Newtonsoft.Json;
 
 namespace maa.perf.test.core.Maa
 {
@@ -166,7 +166,7 @@ namespace maa.perf.test.core.Maa
             }
 
             // Send request
-            Tracer.TraceVerbose($"DoPostAsync: {tenantNameOverrideValue, -24} {uri}");
+            Tracer.TraceVerbose($"DoPostAsync: {tenantNameOverrideValue,-24} {uri}");
             var response = await MyHttpClient.SendAsync(request);
 
             // Analyze failures

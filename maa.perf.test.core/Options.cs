@@ -1,5 +1,5 @@
-﻿using maa.perf.test.core.Utils;
-using CommandLine;
+﻿using CommandLine;
+using maa.perf.test.core.Utils;
 using System;
 
 namespace maa.perf.test.core
@@ -92,20 +92,7 @@ namespace maa.perf.test.core
 
         public MixFile GetMixFileContents()
         {
-            var mixFileContents = SerializationHelper.ReadFromFile<MixFile>(MixFileName);
-            var totalPercent = 0.0d;
-
-            foreach (var a in mixFileContents.ApiMix)
-            {
-                totalPercent += a.Percentage;
-            }
-            
-            if (totalPercent > 1.001 || totalPercent < 0.999)
-            {
-                throw new ArgumentException("Mix file content percentages do not add up to 100%!");
-            }
-
-            return mixFileContents;
+            return MixFile.GetMixFile(MixFileName);
         }
     }
 }

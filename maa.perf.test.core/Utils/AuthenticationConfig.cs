@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Text;
-
-namespace maa.perf.test.core.Utils
+﻿namespace maa.perf.test.core.Utils
 {
     internal interface IAuthenticationConfig
     {

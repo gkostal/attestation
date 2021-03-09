@@ -32,7 +32,7 @@ namespace maa.perf.test.core.Utils
         public event IntervalMetricsNotification PerMinuteMetricsAvailable;
         public event IntervalMetricsNotification PerSecondMetricsAvailable;
 
-        public AsyncFor (Func<double> getTps, string resourceDescription)
+        public AsyncFor(Func<double> getTps, string resourceDescription)
         {
             _getTps = getTps;
             _resourceDescription = resourceDescription;
@@ -43,7 +43,7 @@ namespace maa.perf.test.core.Utils
         }
 
         public AsyncFor(double maxTPS, string resourceDescription)
-            : this (() => maxTPS, resourceDescription)
+            : this(() => maxTPS, resourceDescription)
         {
         }
 

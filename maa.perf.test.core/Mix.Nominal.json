@@ -2,19 +2,19 @@
   "ApiMix": [
     {
       "ApiName": "AttestOpenEnclave",
-      "Percentage": 0.25
+      "Weight": 25
     },
     {
       "ApiName": "AttestSgx",
-      "Percentage": 0.25
+      "Weight": 25
     },
     {
       "ApiName": "GetOpenIdConfiguration",
-      "Percentage": 0.25
+      "Weight": 25
     },
     {
       "ApiName": "GetCerts",
-      "Percentage": 0.25
+      "Weight": 25
     }
   ]
 }

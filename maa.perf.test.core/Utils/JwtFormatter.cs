@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using System;
 using System.Text;
-using Newtonsoft.Json;
 
 namespace maa.perf.test.core.Utils
 {

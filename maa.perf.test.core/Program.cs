@@ -1,10 +1,9 @@
-﻿using System;
-using System.Net;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
+﻿using CommandLine;
 using maa.perf.test.core.Utils;
-using CommandLine;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace maa.perf.test.core
 {
@@ -52,9 +51,9 @@ namespace maa.perf.test.core
                 int numberIntervals = Math.Min(_options.RampUp / 5, 6);
                 TimeSpan intervalLength = (endTime - startTime) / numberIntervals;
                 double intervalRpsDelta = ((double)_options.TargetRPS) / ((double)numberIntervals);
-                for (int i=0; i<numberIntervals; i++)
+                for (int i = 0; i < numberIntervals; i++)
                 {
-                    long intervalRps = (long) Math.Round((i + 1) * intervalRpsDelta);
+                    long intervalRps = (long)Math.Round((i + 1) * intervalRpsDelta);
                     Tracer.TraceInfo($"Ramping up. RPS = {intervalRps}");
                     AsyncFor myRampUpFor = new AsyncFor(intervalRps, _options.AttestationProvider);
                     myRampUpFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
@@ -66,12 +65,12 @@ namespace maa.perf.test.core
             if (_options.RestApi == Api.None)
             {
                 List<Task> asyncRunners = new List<Task>();
-                
+
                 _mixFileContents = _options.GetMixFileContents();
                 foreach (var a in _mixFileContents.ApiMix)
                 {
                     var rps = _options.TargetRPS * a.Percentage;
-                    
+
                     Tracer.TraceInfo($"Running {a.ApiName} at RPS = {rps}");
                     AsyncFor myFor = new AsyncFor(rps, _options.AttestationProvider);
                     myFor.PerSecondMetricsAvailable += new ConsoleAggregattingMetricsHandler(_mixFileContents.ApiMix.Count, 60).MetricsAvailableHandler;

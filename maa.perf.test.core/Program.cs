@@ -10,10 +10,10 @@ namespace maa.perf.test.core
     public class Program
     {
         private Options _options;
-        private MixFile _mixFileContents;
         private Maa.EnclaveInfo _enclaveInfo;
         private Maa.MaaService _maaService;
         private Random _rnd = new Random();
+        private List<AsyncFor> _asyncForInstances = new List<AsyncFor>();
 
         public static void Main(string[] args)
         {
@@ -43,6 +43,9 @@ namespace maa.perf.test.core
 
         public async Task RunAsync()
         {
+            // Complete all HTTP conversations before exiting application
+            Console.CancelKeyPress += HandleControlC;
+
             // Handle ramp up if defined
             if (_options.RampUp > 4)
             {
@@ -62,20 +65,20 @@ namespace maa.perf.test.core
             }
 
             // Are we in mix mode?
-            if (_options.RestApi == Api.None)
+            if (!string.IsNullOrEmpty(_options.MixFileName))
             {
                 List<Task> asyncRunners = new List<Task>();
 
-                _mixFileContents = _options.GetMixFileContents();
-                foreach (var a in _mixFileContents.ApiMix)
+                foreach (var a in _options.MixFileContent.ApiMix)
                 {
                     var rps = _options.TargetRPS * a.Percentage;
 
                     Tracer.TraceInfo($"Running {a.ApiName} at RPS = {rps}");
                     AsyncFor myFor = new AsyncFor(rps, _options.AttestationProvider);
-                    myFor.PerSecondMetricsAvailable += new ConsoleAggregattingMetricsHandler(_mixFileContents.ApiMix.Count, 60).MetricsAvailableHandler;
+                    myFor.PerSecondMetricsAvailable += new ConsoleAggregattingMetricsHandler(_options.MixFileContent.ApiMix.Count, 60).MetricsAvailableHandler;
                     //myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
 
+                    _asyncForInstances.Add(myFor);
                     asyncRunners.Add(myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, GetCallback(a.ApiName)));
                 }
 
@@ -87,9 +90,12 @@ namespace maa.perf.test.core
                 AsyncFor myFor = new AsyncFor(_options.TargetRPS, _options.AttestationProvider);
                 myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
                 myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
+
+                _asyncForInstances.Add(myFor);
                 await myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, GetRestApiCallback());
             }
 
+            Tracer.TraceInfo($"Organized shutdown complete.");
         }
 
         public async Task<double> CallAttestSgxPreviewApiVersionAsync()
@@ -122,6 +128,20 @@ namespace maa.perf.test.core
             return await WrapServiceCallAsync(async () => await _maaService.GetUrlAsync(_options.Url));
         }
 
+        private void HandleControlC(object sender, ConsoleCancelEventArgs e)
+        {
+            Tracer.TraceInfo($"Organized shutdown starting.  Informing {_asyncForInstances.Count} asyncfor instances to terminate.\n");
+
+            // Do NOT stop running application yet
+            e.Cancel = true;
+
+            // Tell all asyncfor instances to stop
+            foreach (var af in _asyncForInstances)
+            {
+                af.Terminate();
+            }
+        }
+
         private async Task<double> WrapServiceCallAsync(Func<Task<string>> callServiceAsync)
         {
             try
@@ -141,7 +161,7 @@ namespace maa.perf.test.core
             var sampleValue = _rnd.NextDouble();
             var currentSum = 0.0d;
 
-            foreach (var a in _mixFileContents.ApiMix)
+            foreach (var a in _options.MixFileContent.ApiMix)
             {
                 if (sampleValue < currentSum + a.Percentage)
                 {
@@ -151,7 +171,7 @@ namespace maa.perf.test.core
             }
 
             // Make sure rounding error doesn't fall through without calling an API
-            return await GetCallback(_mixFileContents.ApiMix[_mixFileContents.ApiMix.Count - 1].ApiName)();
+            return await GetCallback(_options.MixFileContent.ApiMix[_options.MixFileContent.ApiMix.Count - 1].ApiName)();
         }
 
         private Func<Task<double>> GetCallback(Api theApi)
@@ -186,8 +206,6 @@ namespace maa.perf.test.core
             {
                 if (_options.RestApi == Api.None)
                 {
-                    // Make sure we can access the mix file contents now, before we start
-                    _mixFileContents = _options.GetMixFileContents();
                     return CallMixApiSet;
                 }
                 else

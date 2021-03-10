@@ -1,6 +1,7 @@
 ﻿using maa.perf.test.core.Utils;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace maa.perf.test.core
 {
@@ -9,6 +10,27 @@ namespace maa.perf.test.core
     {
         [JsonProperty]
         public Api ApiName { get; set; }
+        [JsonProperty]
+        public bool UsePreviewApi { get; set; }
+        [JsonProperty]
+        public string ServicePort { get; set; }
+        [JsonProperty]
+        public bool UseHttp { get; set; }
+        [JsonProperty]
+        public double Weight { get; set; }
+
+        public double Percentage { get; set; }
+    }
+
+    [JsonObject(MemberSerialization.OptIn)]
+    public class AttestationProviderInfo
+    {
+        [JsonProperty]
+        public string DnsName { get; set; }
+        [JsonProperty]
+        public string TenantNameOverride { get; set; }
+        [JsonProperty]
+        public int ProviderCount { get; set; }
         [JsonProperty]
         public double Weight { get; set; }
 
@@ -19,19 +41,20 @@ namespace maa.perf.test.core
     {
         public List<ApiInfo> ApiMix { get; set; }
 
+        public List<AttestationProviderInfo> ProviderMix { get; set; }
+
         public static MixFile GetMixFile(string mixFileName)
         {
-            var mixFileContents = SerializationHelper.ReadFromFile<MixFile>(mixFileName);
-            var totalWeight = 0.0d;
+            var mixFileContents = default(MixFile);
 
-            foreach (var a in mixFileContents.ApiMix)
+            if (!string.IsNullOrEmpty(mixFileName))
             {
-                totalWeight += a.Weight;
-            }
+                mixFileContents = SerializationHelper.ReadFromFile<MixFile>(mixFileName);
+                var totalApiWeight = mixFileContents.ApiMix?.Sum(a => a.Weight);
+                var totalProviderWeight = mixFileContents.ProviderMix?.Sum(p => p.Weight);
 
-            foreach (var a in mixFileContents.ApiMix)
-            {
-                a.Percentage = a.Weight / totalWeight;
+                mixFileContents.ApiMix?.ForEach(a => a.Percentage = a.Weight / totalApiWeight.Value);
+                mixFileContents.ProviderMix?.ForEach(p => p.Percentage = p.Weight / totalProviderWeight.Value);
             }
 
             return mixFileContents;

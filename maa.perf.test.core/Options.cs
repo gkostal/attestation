@@ -6,9 +6,7 @@ namespace maa.perf.test.core
 {
     public class Options
     {
-        [Option('p', "provider", Required = false, HelpText = "Attestation provider DNS name")]
-        public string AttestationProvider { get; set; }
-
+        // Global stuff
         [Option('c', "connections", Required = false, HelpText = "Number of simultaneous connections (and calls) to the MAA service")]
         public long SimultaneousConnections { get; set; }
 
@@ -18,23 +16,8 @@ namespace maa.perf.test.core
         [Option('f', "forcereconnects", Required = false, HelpText = "Force reconnects on each request")]
         public bool ForceReconnects { get; set; }
 
-        [Option('w', "previewapiversion", Required = false, HelpText = "Use preview api-version instead of GA")]
-        public bool UsePreviewApiVersion { get; set; }
-
-        [Option('a', "api", Required = false, HelpText = "REST Api to test: {AttestSgx, AttestOpenEnclave, GetOpenIdConfiguration, GetCerts, GetServiceHealth}")]
-        public Api RestApi { get; set; }
-
         [Option('q', "quote", Required = false, HelpText = "Enclave info file containing the SGX quote")]
         public string EnclaveInfoFile { get; set; }
-
-        [Option('o', "port", Required = false, HelpText = "Override service port number (default is 443)")]
-        public string ServicePort { get; set; }
-
-        [Option('t', "tenant", Required = false, HelpText = "Override tenant name (default extracted from DNS name)")]
-        public string TenantName { get; set; }
-
-        [Option('h', "http", Required = false, HelpText = "Connect via HTTP (default is HTTPS)")]
-        public bool UseHttp { get; set; }
 
         [Option('u', "url", Required = false, HelpText = "Load test a HTTP GET request for the provided URL")]
         public string Url { get; set; }
@@ -42,14 +25,42 @@ namespace maa.perf.test.core
         [Option('m', "rampup", Required = false, HelpText = "Ramp up time in seconds")]
         public int RampUp { get; set; }
 
+        [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages")]
+        public bool Verbose { get; set; }
+
+        // Either MIXFILE
+        private string _mixFileName;
+        private MixFile _mixFileContent;
+
         [Option('x', "mixfile", Required = false, HelpText = "Mix file (JSON, defines mix of API calls)")]
-        public string MixFileName { get; set; }
+        public string MixFileName { get { return _mixFileName; } set { _mixFileName = value; _mixFileContent = MixFile.GetMixFile(value); } }
+
+        public MixFile MixFileContent { get { return _mixFileContent; } }
+
+        // Or the following
+        
+        // API info
+        [Option('a', "api", Required = false, HelpText = "REST Api to test: {AttestSgx, AttestOpenEnclave, GetOpenIdConfiguration, GetCerts, GetServiceHealth}")]
+        public Api RestApi { get; set; }
+
+        [Option('w', "previewapiversion", Required = false, HelpText = "Use preview api-version instead of GA")]
+        public bool UsePreviewApiVersion { get; set; }
+
+        [Option('o', "port", Required = false, HelpText = "Override service port number (default is 443)")]
+        public string ServicePort { get; set; }
+
+        [Option('h', "http", Required = false, HelpText = "Connect via HTTP (default is HTTPS)")]
+        public bool UseHttp { get; set; }
+
+        // Provider info
+        [Option('p', "provider", Required = false, HelpText = "Attestation provider DNS name")]
+        public string AttestationProvider { get; set; }
+
+        [Option('t', "tenant", Required = false, HelpText = "Override tenant name (default extracted from DNS name)")]
+        public string TenantName { get; set; }
 
         [Option('z', "providercount", Required = false, HelpText = "Provider count (default = 1)")]
         public int ProviderCount { get; set; }
-
-        [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages")]
-        public bool Verbose { get; set; }
 
         public Options()
         {

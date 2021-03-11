@@ -60,7 +60,7 @@ namespace maa.perf.test.core
                     var myFor = new AsyncFor(_options.TargetRPS * apiInfo.Percentage, GetProviderMixDescription(_mixInfo), apiInfo.ApiName.ToString());
                     if (_mixInfo.ApiMix.Count > 1)
                     {
-                        myFor.PerSecondMetricsAvailable += new ConsoleAggregattingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
+                        myFor.PerSecondMetricsAvailable += new ConsoleAggregatingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
                     }
                     else
                     {
@@ -69,7 +69,7 @@ namespace maa.perf.test.core
                     }
 
                     _asyncForInstances.Add(myFor);
-                    asyncRunners.Add(myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi));
+                    asyncRunners.Add(myFor.For(TimeSpan.FromSeconds(_options.TestTimeSeconds), _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi));
                 }
             }
 
@@ -81,25 +81,27 @@ namespace maa.perf.test.core
         private async Task RampUpAsync()
         {
             // Handle ramp up if defined
-            if (_options.RampUp > 4 && !_terminate)
+            if (_options.RampUpTimeSeconds > 4 && !_terminate)
             {
                 Tracer.TraceInfo($"Ramping up starts.");
 
                 DateTime startTime = DateTime.Now;
-                DateTime endTime = startTime + TimeSpan.FromSeconds(_options.RampUp);
-                int numberIntervals = Math.Min(_options.RampUp / 5, 6);
+                DateTime endTime = startTime + TimeSpan.FromSeconds(_options.RampUpTimeSeconds);
+                int numberIntervals = Math.Min(_options.RampUpTimeSeconds / 5, 6);
                 TimeSpan intervalLength = (endTime - startTime) / numberIntervals;
                 double intervalRpsDelta = ((double)_options.TargetRPS) / ((double)numberIntervals);
                 for (int i = 0; i < numberIntervals && !_terminate; i++)
                 {
+                    var apiInfo = _mixInfo.ApiMix[i % _mixInfo.ApiMix.Count];
+
                     long intervalRps = (long)Math.Round((i + 1) * intervalRpsDelta);
                     Tracer.TraceInfo($"Ramping up. RPS = {intervalRps}");
 
-                    AsyncFor myRampUpFor = new AsyncFor(intervalRps, GetProviderMixDescription(_mixInfo), $"{_mixInfo.ApiMix[0].ApiName}");
+                    AsyncFor myRampUpFor = new AsyncFor(intervalRps, GetProviderMixDescription(_mixInfo), $"{apiInfo.ApiName}");
                     myRampUpFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
                     _asyncForInstances.Add(myRampUpFor);
 
-                    await myRampUpFor.For(intervalLength, _options.SimultaneousConnections, new MaaServiceApiCaller(_mixInfo.ApiMix[0], _mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi);
+                    await myRampUpFor.For(intervalLength, _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi);
                 }
                 Tracer.TraceInfo($"Ramping up complete.");
             }

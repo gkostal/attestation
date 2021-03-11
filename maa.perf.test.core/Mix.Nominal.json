@@ -19,19 +19,13 @@
   ],
   "ProviderMix": [
     {
-      "DnsName": "sharedcuse.cuse.attest.azure.net",
+      "DnsName": "sharedeus.eus.test.attest.azure.net",
       "TenantNameOverride": "",
       "ProviderCount": 1,
       "Weight": 25
     },
     {
-      "DnsName": "sharedcae.cae.attest.azure.net",
-      "TenantNameOverride": "",
-      "ProviderCount": 1,
-      "Weight": 25
-    },
-    {
-      "DnsName": "sharedcac.cac.attest.azure.net",
+      "DnsName": "sharedwus.wus.test.attest.azure.net",
       "TenantNameOverride": "",
       "ProviderCount": 1,
       "Weight": 25

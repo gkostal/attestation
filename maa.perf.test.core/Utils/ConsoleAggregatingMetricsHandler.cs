@@ -3,14 +3,15 @@ using System.Collections.Generic;
 
 namespace maa.perf.test.core.Utils
 {
-    class ConsoleAggregattingMetricsHandler
+    class ConsoleAggregatingMetricsHandler
     {
-        private int _lookbackSeconds;
-        private List<IntervalMetrics> _lookbackData = new List<IntervalMetrics>();
-        private int _simultaneousCount;
         static private List<string> _bufferedOutput = new List<string>();
 
-        public ConsoleAggregattingMetricsHandler(int simultaneousCount, int lookbackSeconds = 15)
+        private int _lookbackSeconds;
+        private int _simultaneousCount;
+        private List<IntervalMetrics> _lookbackData = new List<IntervalMetrics>();
+
+        public ConsoleAggregatingMetricsHandler(int simultaneousCount, int lookbackSeconds = 15)
         {
             _simultaneousCount = simultaneousCount;
             _lookbackSeconds = lookbackSeconds;

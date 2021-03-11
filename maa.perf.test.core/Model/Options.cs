@@ -21,8 +21,11 @@ namespace maa.perf.test.core.Model
         [Option('u', "url", Required = false, HelpText = "Load test a HTTP GET request for the provided URL")]
         public string Url { get; set; }
 
-        [Option('m', "rampup", Required = false, HelpText = "Ramp up time in seconds")]
-        public int RampUp { get; set; }
+        [Option('m', "rampuptime", Required = false, HelpText = "Ramp up time in seconds")]
+        public int RampUpTimeSeconds { get; set; }
+
+        [Option('i', "testtime", Required = false, HelpText = "Testing time in seconds")]
+        public int TestTimeSeconds { get; set; }
 
         [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages")]
         public bool Verbose { get; set; }
@@ -106,17 +109,19 @@ namespace maa.perf.test.core.Model
             TenantName = null;
             RestApi = Api.None;
             Url = null;
-            RampUp = 0;
+            RampUpTimeSeconds = 0;
             ProviderCount = 1;
             MixFileName = null;
+            TestTimeSeconds = int.MaxValue;
         }
 
         public void Trace()
         {
             Tracer.TraceInfo($"");
             Tracer.TraceInfo($"Attestation Provider     : {AttestationProvider}");
-            Tracer.TraceInfo($"ProviderCount            : {ProviderCount}");
             Tracer.TraceInfo($"REST Api                 : {RestApi}");
+            Tracer.TraceInfo($"Test time in seconds     : {TestTimeSeconds}");
+            Tracer.TraceInfo($"ProviderCount            : {ProviderCount}");
             Tracer.TraceInfo($"Mix File Name            : {MixFileName}");
             Tracer.TraceInfo($"Enclave Info File        : {EnclaveInfoFile}");
             Tracer.TraceInfo($"Simultaneous Connections : {SimultaneousConnections}");
@@ -127,7 +132,7 @@ namespace maa.perf.test.core.Model
             Tracer.TraceInfo($"Tenant Name Override     : {TenantName}");
             Tracer.TraceInfo($"Use HTTP                 : {UseHttp}");
             Tracer.TraceInfo($"Url                      : {Url}");
-            Tracer.TraceInfo($"RampUp                   : {RampUp}");
+            Tracer.TraceInfo($"RampUpTimeSeconds                   : {RampUpTimeSeconds}");
             Tracer.TraceInfo($"");
         }
     }

@@ -70,7 +70,7 @@ namespace maa.perf.test.core
                 var rps = _options.TargetRPS * apiInfo.Percentage;
 
                 Tracer.TraceInfo($"Running {apiInfo.ApiName} at RPS = {rps}");
-                AsyncFor myFor = new AsyncFor(rps, _options.AttestationProvider);
+                AsyncFor myFor = new AsyncFor(rps, apiInfo.ApiName.ToString());
                 myFor.PerSecondMetricsAvailable += new ConsoleAggregattingMetricsHandler(mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
                 //myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
 

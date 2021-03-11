@@ -32,18 +32,19 @@ namespace maa.perf.test.core.Utils
         public event IntervalMetricsNotification PerMinuteMetricsAvailable;
         public event IntervalMetricsNotification PerSecondMetricsAvailable;
 
-        public AsyncFor(Func<double> getTps, string resourceDescription)
+        public AsyncFor(Func<double> getTps, string resourceDescription, string testDescription)
         {
             _getTps = getTps;
             _resourceDescription = resourceDescription;
+            _testDescription = testDescription;
             _currentCount = 0;
             _timer = new Stopwatch();
             _throttlingCurrentCount = 0;
             _throttlingTimer = new Stopwatch();
         }
 
-        public AsyncFor(double maxTPS, string resourceDescription)
-            : this(() => maxTPS, resourceDescription)
+        public AsyncFor(double maxTPS, string resourceDescription, string testDescription)
+            : this(() => maxTPS, resourceDescription, testDescription)
         {
         }
 
@@ -62,7 +63,7 @@ namespace maa.perf.test.core.Utils
             _timer.Start();
             _throttlingTimer.Start();
             _enabled = true;
-            _methodName = asyncWorkerFunction.Method.Name;
+            _testDescription ??= asyncWorkerFunction.Method.Name;
 
             List<Task> tasks = new List<Task>();
             for (long i = 0; i < maxSimultanousAwaits; i++)
@@ -169,7 +170,7 @@ namespace maa.perf.test.core.Utils
             (
                 currentTimeSnapshot.Truncate(TimeSpan.FromSeconds(1)),    // Truncate to current second
                 duration,
-                _methodName,
+                _testDescription,
                 Environment.MachineName,
                 Process.GetCurrentProcess().Id,
                 _resourceDescription,
@@ -283,7 +284,7 @@ namespace maa.perf.test.core.Utils
         // Global static state
         private bool _enabled = false;
         private long _currentCount;
-        private string _methodName;
+        private string _testDescription;
         private string _resourceDescription;
 
         // Throttling state - periodically resets to avoid long running "catch up" work

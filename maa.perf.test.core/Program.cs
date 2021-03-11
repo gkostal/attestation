@@ -12,7 +12,9 @@ namespace maa.perf.test.core
     public class Program
     {
         private Options _options;
+        private MixInfo _mixInfo;
         private List<AsyncFor> _asyncForInstances = new List<AsyncFor>();
+        private bool _terminate = false;
 
         public static void Main(string[] args)
         {
@@ -43,43 +45,76 @@ namespace maa.perf.test.core
             // Complete all HTTP conversations before exiting application
             Console.CancelKeyPress += HandleControlC;
 
-            // Handle ramp up if defined
-            if (_options.RampUp > 4)
+            // Housekeeping
+            List<Task> asyncRunners = new List<Task>();
+            _mixInfo = _options.GetMixInfo();
+
+            // Handle ramp up if needed
+            await RampUpAsync();
+
+            // Initiate separate asyncfor for each API in the mix
+            if (!_terminate)
             {
+                foreach (var apiInfo in _mixInfo.ApiMix)
+                {
+                    var myFor = new AsyncFor(_options.TargetRPS * apiInfo.Percentage, GetProviderMixDescription(_mixInfo), apiInfo.ApiName.ToString());
+                    if (_mixInfo.ApiMix.Count > 1)
+                    {
+                        myFor.PerSecondMetricsAvailable += new ConsoleAggregattingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
+                    }
+                    else
+                    {
+                        myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
+                        myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
+                    }
+
+                    _asyncForInstances.Add(myFor);
+                    asyncRunners.Add(myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi));
+                }
+            }
+
+            // Wait for all to be complete (happens when crtl-c is hit)
+            await Task.WhenAll(asyncRunners.ToArray());
+            Tracer.TraceInfo($"Organized shutdown complete.");
+        }
+
+        private async Task RampUpAsync()
+        {
+            // Handle ramp up if defined
+            if (_options.RampUp > 4 && !_terminate)
+            {
+                Tracer.TraceInfo($"Ramping up starts.");
+
                 DateTime startTime = DateTime.Now;
                 DateTime endTime = startTime + TimeSpan.FromSeconds(_options.RampUp);
                 int numberIntervals = Math.Min(_options.RampUp / 5, 6);
                 TimeSpan intervalLength = (endTime - startTime) / numberIntervals;
                 double intervalRpsDelta = ((double)_options.TargetRPS) / ((double)numberIntervals);
-                for (int i = 0; i < numberIntervals; i++)
+                for (int i = 0; i < numberIntervals && !_terminate; i++)
                 {
                     long intervalRps = (long)Math.Round((i + 1) * intervalRpsDelta);
                     Tracer.TraceInfo($"Ramping up. RPS = {intervalRps}");
-                    AsyncFor myRampUpFor = new AsyncFor(intervalRps, _options.AttestationProvider);
+
+                    AsyncFor myRampUpFor = new AsyncFor(intervalRps, GetProviderMixDescription(_mixInfo), $"{_mixInfo.ApiMix[0].ApiName}");
                     myRampUpFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
-                    // TODO: Fix warmup
-                    //await myRampUpFor.For(intervalLength, _options.SimultaneousConnections, GetRestApiCallback());
+                    _asyncForInstances.Add(myRampUpFor);
+
+                    await myRampUpFor.For(intervalLength, _options.SimultaneousConnections, new MaaServiceApiCaller(_mixInfo.ApiMix[0], _mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi);
                 }
+                Tracer.TraceInfo($"Ramping up complete.");
             }
+        }
 
-            List<Task> asyncRunners = new List<Task>();
-            var mixInfo = _options.GetMixInfo();
-
-            foreach (var apiInfo in mixInfo.ApiMix)
+        private string GetProviderMixDescription(MixInfo mixInfo)
+        {
+            var description = mixInfo.ProviderMix[0].DnsName;
+            
+            if (mixInfo.ProviderMix.Count > 1)
             {
-                var rps = _options.TargetRPS * apiInfo.Percentage;
-
-                Tracer.TraceInfo($"Running {apiInfo.ApiName} at RPS = {rps}");
-                AsyncFor myFor = new AsyncFor(rps, apiInfo.ApiName.ToString());
-                myFor.PerSecondMetricsAvailable += new ConsoleAggregattingMetricsHandler(mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
-                //myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
-
-                _asyncForInstances.Add(myFor);
-                asyncRunners.Add(myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi));
+                description = $"{description} + {mixInfo.ProviderMix.Count - 1} more";
             }
 
-            await Task.WhenAll(asyncRunners.ToArray());
-            Tracer.TraceInfo($"Organized shutdown complete.");
+            return description;
         }
 
         private void HandleControlC(object sender, ConsoleCancelEventArgs e)
@@ -87,6 +122,7 @@ namespace maa.perf.test.core
             Tracer.TraceInfo($"Organized shutdown starting.  Informing {_asyncForInstances.Count} asyncfor instances to terminate.\n");
 
             // Do NOT stop running application yet
+            _terminate = true;
             e.Cancel = true;
 
             // Tell all asyncfor instances to stop

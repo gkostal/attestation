@@ -75,7 +75,8 @@ namespace maa.perf.test.core.Model
                     UsePreviewApi = this.UsePreviewApiVersion,
                     ServicePort = this.ServicePort,
                     UseHttp = this.UseHttp,
-                    Weight = 100.0d
+                    Weight = 100.0d,
+                    Percentage = 1.0d
                 });
 
                 theMixInfo.ProviderMix.Add(new WeightedAttestationProvidersInfo()
@@ -83,7 +84,8 @@ namespace maa.perf.test.core.Model
                     DnsName = this.AttestationProvider,
                     TenantNameOverride = this.TenantName,
                     ProviderCount = this.ProviderCount,
-                    Weight = 100.0d
+                    Weight = 100.0d,
+                    Percentage = 1.0d
                 });
             }
 

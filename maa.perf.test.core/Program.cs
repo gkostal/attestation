@@ -1,5 +1,7 @@
 ﻿using CommandLine;
 using maa.perf.test.core.Utils;
+using maa.perf.test.core.Maa;
+using maa.perf.test.core.Model;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -10,8 +12,8 @@ namespace maa.perf.test.core
     public class Program
     {
         private Options _options;
-        private Maa.EnclaveInfo _enclaveInfo;
-        private Maa.MaaService _maaService;
+        private EnclaveInfo _enclaveInfo;
+        private MaaService _maaService;
         private Random _rnd = new Random();
         private List<AsyncFor> _asyncForInstances = new List<AsyncFor>();
 
@@ -35,8 +37,8 @@ namespace maa.perf.test.core
             }
 
             Tracer.CurrentTracingLevel = _options.Verbose ? TracingLevel.Verbose : TracingLevel.Info;
-            _enclaveInfo = Maa.EnclaveInfo.CreateFromFile(_options.EnclaveInfoFile);
-            _maaService = new Maa.MaaService(_options);
+            _enclaveInfo = EnclaveInfo.CreateFromFile(_options.EnclaveInfoFile);
+            _maaService = new MaaService(_options);
 
             _options.Trace();
         }
@@ -64,37 +66,23 @@ namespace maa.perf.test.core
                 }
             }
 
-            // Are we in mix mode?
-            if (!string.IsNullOrEmpty(_options.MixFileName))
+            List<Task> asyncRunners = new List<Task>();
+            var mixInfo = _options.GetMixInfo();
+
+            foreach (var apiInfo in mixInfo.ApiMix)
             {
-                List<Task> asyncRunners = new List<Task>();
+                var rps = _options.TargetRPS * apiInfo.Percentage;
 
-                foreach (var a in _options.MixFileContent.ApiMix)
-                {
-                    var rps = _options.TargetRPS * a.Percentage;
-
-                    Tracer.TraceInfo($"Running {a.ApiName} at RPS = {rps}");
-                    AsyncFor myFor = new AsyncFor(rps, _options.AttestationProvider);
-                    myFor.PerSecondMetricsAvailable += new ConsoleAggregattingMetricsHandler(_options.MixFileContent.ApiMix.Count, 60).MetricsAvailableHandler;
-                    //myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
-
-                    _asyncForInstances.Add(myFor);
-                    asyncRunners.Add(myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, GetCallback(a.ApiName)));
-                }
-
-                Task.WaitAll(asyncRunners.ToArray());
-            }
-            else
-            {
-                Tracer.TraceInfo($"Running at RPS = {_options.TargetRPS}");
-                AsyncFor myFor = new AsyncFor(_options.TargetRPS, _options.AttestationProvider);
-                myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
-                myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
+                Tracer.TraceInfo($"Running {apiInfo.ApiName} at RPS = {rps}");
+                AsyncFor myFor = new AsyncFor(rps, _options.AttestationProvider);
+                myFor.PerSecondMetricsAvailable += new ConsoleAggregattingMetricsHandler(mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
+                //myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
 
                 _asyncForInstances.Add(myFor);
-                await myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, GetRestApiCallback());
+                asyncRunners.Add(myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, mixInfo.ProviderMix).CallApi));
             }
 
+            Task.WaitAll(asyncRunners.ToArray());
             Tracer.TraceInfo($"Organized shutdown complete.");
         }
 
@@ -204,7 +192,7 @@ namespace maa.perf.test.core
             }
             else
             {
-                if (_options.RestApi == Api.None)
+                if (!string.IsNullOrEmpty(_options.MixFileName))
                 {
                     return CallMixApiSet;
                 }

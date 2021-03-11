@@ -16,5 +16,19 @@
       "ApiName": "GetCerts",
       "Weight": 25
     }
+  ],
+  "ProviderMix": [
+    {
+      "DnsName": "sharedeus.eus.attest.azure.net",
+      "TenantNameOverride": "",
+      "ProviderCount": 1,
+      "Weight": 25
+    },
+    {
+      "DnsName": "shareduks.uks.attest.azure.net",
+      "TenantNameOverride": "",
+      "ProviderCount": 1,
+      "Weight": 25
+    }
   ]
 }

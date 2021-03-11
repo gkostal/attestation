@@ -7,20 +7,23 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace maa.perf.test.core.Maa
 {
+    /// <summary>
+    /// This class needs to be thread safe
+    /// </summary>
     public class MaaService
     {
         const string TenantNameRegEx = @"(\D*)(\d*)";
         const string ProviderDnsNameRegEx = @"(\D*)(\d*)\..*";
         private static HttpClient theHttpClient;
-        private Options options;
-        private string providerDnsName;
+        
+        private Options _options;
+        private MixInfo _mixInfo;
+        
         private bool forceReconnects;
-        private string servicePortNumber;
-        private string tenantNameOverride;
-        private string uriScheme;
         private string providerDnsNameBase;
         private string tenantNameOverrideBase;
         private int currentProviderCount;
@@ -45,16 +48,15 @@ namespace maa.perf.test.core.Maa
 
         public MaaService(Options optionsReference)
         {
-            this.options = optionsReference;
-            this.providerDnsName = optionsReference.AttestationProvider;
-            this.forceReconnects = optionsReference.ForceReconnects;
-            this.servicePortNumber = optionsReference.ServicePort;
-            this.tenantNameOverride = optionsReference.TenantName;
-            this.uriScheme = optionsReference.UseHttp ? "http" : "https";
+            _options = optionsReference;
+            _mixInfo = optionsReference.GetMixInfo();
 
             this.providerDnsNameBase = "";
             this.tenantNameOverrideBase = "";
             this.currentProviderCount = 0;
+
+            _totalProviderCount = _mixInfo.ProviderMix.Sum(p => p.ProviderCount);
+
             if (optionsReference.ProviderCount > 1)
             {
                 if (!this.providerDnsName.Equals("localhost", StringComparison.InvariantCultureIgnoreCase))
@@ -109,7 +111,7 @@ namespace maa.perf.test.core.Maa
             }
             else
             {
-                if (currentProviderCount >= options.ProviderCount)
+                if (currentProviderCount >= _options.ProviderCount)
                 {
                     currentProviderCount = 0;
                 }
@@ -125,7 +127,7 @@ namespace maa.perf.test.core.Maa
             }
             else
             {
-                if (currentProviderCount >= options.ProviderCount)
+                if (currentProviderCount >= _options.ProviderCount)
                 {
                     currentProviderCount = 0;
                 }

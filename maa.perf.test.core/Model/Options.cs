@@ -2,7 +2,7 @@
 using maa.perf.test.core.Utils;
 using System;
 
-namespace maa.perf.test.core
+namespace maa.perf.test.core.Model
 {
     public class Options
     {
@@ -29,13 +29,8 @@ namespace maa.perf.test.core
         public bool Verbose { get; set; }
 
         // Either MIXFILE
-        private string _mixFileName;
-        private MixFile _mixFileContent;
-
         [Option('x', "mixfile", Required = false, HelpText = "Mix file (JSON, defines mix of API calls)")]
-        public string MixFileName { get { return _mixFileName; } set { _mixFileName = value; _mixFileContent = MixFile.GetMixFile(value); } }
-
-        public MixFile MixFileContent { get { return _mixFileContent; } }
+        public string MixFileName { get; set; }
 
         // Or the following
         
@@ -61,6 +56,40 @@ namespace maa.perf.test.core
 
         [Option('z', "providercount", Required = false, HelpText = "Provider count (default = 1)")]
         public int ProviderCount { get; set; }
+
+        // The following should always be accurate regardless of how command line parameters are set
+        public MixInfo GetMixInfo() 
+        {
+            var theMixInfo = default(MixInfo);
+
+            if (!string.IsNullOrEmpty(MixFileName))
+            {
+                theMixInfo = MixInfo.ReadMixInfo(MixFileName);
+            }
+            else
+            {
+                theMixInfo = new MixInfo();
+
+                theMixInfo.ApiMix.Add(new ApiInfo()
+                {
+                    ApiName = this.RestApi,
+                    UsePreviewApi = this.UsePreviewApiVersion,
+                    ServicePort = this.ServicePort,
+                    UseHttp = this.UseHttp,
+                    Weight = 100.0d
+                });
+
+                theMixInfo.ProviderMix.Add(new AttestationProviderInfo()
+                {
+                    DnsName = this.AttestationProvider,
+                    TenantNameOverride = this.TenantName,
+                    ProviderCount = this.ProviderCount,
+                    Weight = 100.0d
+                });
+            }
+
+            return theMixInfo;
+        }
 
         public Options()
         {
@@ -99,11 +128,6 @@ namespace maa.perf.test.core
             Tracer.TraceInfo($"Url                      : {Url}");
             Tracer.TraceInfo($"RampUp                   : {RampUp}");
             Tracer.TraceInfo($"");
-        }
-
-        public MixFile GetMixFileContents()
-        {
-            return MixFile.GetMixFile(MixFileName);
         }
     }
 }

@@ -1,13 +1,10 @@
 ﻿using maa.perf.test.core.Authentication;
-using maa.perf.test.core.Utils;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Linq;
 
 namespace maa.perf.test.core.Maa
 {
@@ -16,27 +13,21 @@ namespace maa.perf.test.core.Maa
     /// </summary>
     public class MaaService
     {
-        const string TenantNameRegEx = @"(\D*)(\d*)";
-        const string ProviderDnsNameRegEx = @"(\D*)(\d*)\..*";
+        private const string TenantNameHeder = "tenantName";
         private static HttpClient theHttpClient;
-        
-        private Options _options;
-        private MixInfo _mixInfo;
-        
-        private bool forceReconnects;
-        private string providerDnsNameBase;
-        private string tenantNameOverrideBase;
-        private int currentProviderCount;
+        private MaaConnectionInfo _connectionInfo;
+        private string _uriScheme;
+        private string _servicePort;
 
         public HttpClient MyHttpClient =>
-            forceReconnects ? new HttpClient(GetHttpRequestHandler()) : theHttpClient;
+            _connectionInfo.ForceReconnects ? new HttpClient(GetHttpRequestHandler()) : theHttpClient;
 
         static MaaService()
         {
             theHttpClient = new HttpClient(GetHttpRequestHandler());
         }
 
-        public static DelegatingHandler GetHttpRequestHandler()
+        private static DelegatingHandler GetHttpRequestHandler()
         {
             return new FailureInjectionDelegatingHandler(
                 new AuthenticationDelegatingHandler(),
@@ -46,16 +37,15 @@ namespace maa.perf.test.core.Maa
                 });
         }
 
-        public MaaService(Options optionsReference)
+        public MaaService(MaaConnectionInfo connectionInfo)
         {
-            _options = optionsReference;
-            _mixInfo = optionsReference.GetMixInfo();
+            _connectionInfo = connectionInfo;
+            _uriScheme = _connectionInfo.UseHttp ? "http" : "https";
+            _servicePort = string.IsNullOrEmpty(_connectionInfo.ServicePort) ? (_connectionInfo.UseHttp ? "80" : "443") : _connectionInfo.ServicePort;
 
-            this.providerDnsNameBase = "";
-            this.tenantNameOverrideBase = "";
-            this.currentProviderCount = 0;
-
-            _totalProviderCount = _mixInfo.ProviderMix.Sum(p => p.ProviderCount);
+            /*
+            const string TenantNameRegEx = @"(\D*)(\d*)";
+            const string ProviderDnsNameRegEx = @"(\D*)(\d*)\..*";
 
             if (optionsReference.ProviderCount > 1)
             {
@@ -70,32 +60,33 @@ namespace maa.perf.test.core.Maa
                     this.tenantNameOverrideBase = tre.Groups[1].Value;
                 }
             }
+            */
         }
 
         public async Task<string> AttestOpenEnclaveAsync(Preview.AttestOpenEnclaveRequestBody requestBody)
         {
-            return await DoPostAsync($"{uriScheme}://{GetDnsName()}:{servicePortNumber}/attest/Tee/OpenEnclave?api-version=2018-09-01-preview", requestBody);
+            return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/Tee/OpenEnclave?api-version=2018-09-01-preview", requestBody);
         }
 
         //2020-10-01
         public async Task<string> AttestOpenEnclaveAsync(Ga.AttestOpenEnclaveRequestBody requestBody)
         {
-            return await DoPostAsync($"{uriScheme}://{GetDnsName()}:{servicePortNumber}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
+            return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
         }
 
         public async Task<string> GetOpenIdConfigurationAsync()
         {
-            return await DoGetAsync($"{uriScheme}://{GetDnsName()}:{servicePortNumber}/.well-known/openid-configuration?api-version=2020-10-01");
+            return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/.well-known/openid-configuration?api-version=2020-10-01");
         }
 
         public async Task<string> GetCertsAsync()
         {
-            return await DoGetAsync($"{uriScheme}://{GetDnsName()}:{servicePortNumber}/certs?api-version=2020-10-01");
+            return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/certs?api-version=2020-10-01");
         }
 
         public async Task<string> GetServiceHealthAsync()
         {
-            return await DoGetAsync($"{uriScheme}://{GetDnsName()}:{servicePortNumber}/servicehealth?api-version=2020-10-01");
+            return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/servicehealth?api-version=2020-10-01");
         }
 
         public async Task<string> GetUrlAsync(string url)
@@ -103,42 +94,16 @@ namespace maa.perf.test.core.Maa
             return await DoGetAsync(url);
         }
 
-        private string GetDnsName()
-        {
-            if (string.IsNullOrEmpty(providerDnsNameBase))
-            {
-                return providerDnsName;
-            }
-            else
-            {
-                if (currentProviderCount >= _options.ProviderCount)
-                {
-                    currentProviderCount = 0;
-                }
-                return $"{providerDnsNameBase}{currentProviderCount++}";
-            }
-        }
-
-        private string GetTenantNameOverride()
-        {
-            if (string.IsNullOrEmpty(tenantNameOverrideBase))
-            {
-                return tenantNameOverride;
-            }
-            else
-            {
-                if (currentProviderCount >= _options.ProviderCount)
-                {
-                    currentProviderCount = 0;
-                }
-                return $"{tenantNameOverrideBase}{currentProviderCount++}";
-            }
-        }
-
         private async Task<string> DoGetAsync(string uri, [CallerMemberName] string caller = null)
         {
             // Build request
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
+
+            // Add tenant name override header if requested
+            if (!string.IsNullOrEmpty(_connectionInfo.TenantNameOverride))
+            {
+                request.Headers.Add(TenantNameHeder, _connectionInfo.TenantNameOverride);
+            }
 
             // Send request
             var response = await MyHttpClient.SendAsync(request);
@@ -161,14 +126,12 @@ namespace maa.perf.test.core.Maa
             request.Content = new StringContent(JsonConvert.SerializeObject(bodyObject), null, "application/json");
 
             // Add tenant name override header if requested
-            var tenantNameOverrideValue = GetTenantNameOverride();
-            if (!string.IsNullOrEmpty(tenantNameOverrideValue))
+            if (!string.IsNullOrEmpty(_connectionInfo.TenantNameOverride))
             {
-                request.Headers.Add("tenantName", tenantNameOverrideValue);
+                request.Headers.Add(TenantNameHeder, _connectionInfo.TenantNameOverride);
             }
 
             // Send request
-            Tracer.TraceVerbose($"DoPostAsync: {tenantNameOverrideValue,-24} {uri}");
             var response = await MyHttpClient.SendAsync(request);
 
             // Analyze failures

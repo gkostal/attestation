@@ -1,7 +1,7 @@
 ﻿using CommandLine;
-using maa.perf.test.core.Utils;
 using maa.perf.test.core.Maa;
 using maa.perf.test.core.Model;
+using maa.perf.test.core.Utils;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -12,9 +12,6 @@ namespace maa.perf.test.core
     public class Program
     {
         private Options _options;
-        private EnclaveInfo _enclaveInfo;
-        private MaaService _maaService;
-        private Random _rnd = new Random();
         private List<AsyncFor> _asyncForInstances = new List<AsyncFor>();
 
         public static void Main(string[] args)
@@ -37,8 +34,6 @@ namespace maa.perf.test.core
             }
 
             Tracer.CurrentTracingLevel = _options.Verbose ? TracingLevel.Verbose : TracingLevel.Info;
-            _enclaveInfo = EnclaveInfo.CreateFromFile(_options.EnclaveInfoFile);
-            _maaService = new MaaService(_options);
 
             _options.Trace();
         }
@@ -62,7 +57,8 @@ namespace maa.perf.test.core
                     Tracer.TraceInfo($"Ramping up. RPS = {intervalRps}");
                     AsyncFor myRampUpFor = new AsyncFor(intervalRps, _options.AttestationProvider);
                     myRampUpFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
-                    await myRampUpFor.For(intervalLength, _options.SimultaneousConnections, GetRestApiCallback());
+                    // TODO: Fix warmup
+                    //await myRampUpFor.For(intervalLength, _options.SimultaneousConnections, GetRestApiCallback());
                 }
             }
 
@@ -79,41 +75,11 @@ namespace maa.perf.test.core
                 //myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
 
                 _asyncForInstances.Add(myFor);
-                asyncRunners.Add(myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, mixInfo.ProviderMix).CallApi));
+                asyncRunners.Add(myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi));
             }
 
-            Task.WaitAll(asyncRunners.ToArray());
+            await Task.WhenAll(asyncRunners.ToArray());
             Tracer.TraceInfo($"Organized shutdown complete.");
-        }
-
-        public async Task<double> CallAttestSgxPreviewApiVersionAsync()
-        {
-            return await WrapServiceCallAsync(async () => await _maaService.AttestOpenEnclaveAsync(new Maa.Preview.AttestOpenEnclaveRequestBody(_enclaveInfo)));
-        }
-
-        public async Task<double> CallAttestSgxGaApiVersionAsync()
-        {
-            return await WrapServiceCallAsync(async () => await _maaService.AttestOpenEnclaveAsync(new Maa.Ga.AttestOpenEnclaveRequestBody(_enclaveInfo)));
-        }
-
-        public async Task<double> GetCertsAsync()
-        {
-            return await WrapServiceCallAsync(async () => await _maaService.GetCertsAsync());
-        }
-
-        public async Task<double> GetOpenIdConfigurationAsync()
-        {
-            return await WrapServiceCallAsync(async () => await _maaService.GetOpenIdConfigurationAsync());
-        }
-
-        public async Task<double> GetServiceHealthAsync()
-        {
-            return await WrapServiceCallAsync(async () => await _maaService.GetServiceHealthAsync());
-        }
-
-        public async Task<double> GetUrlAsync()
-        {
-            return await WrapServiceCallAsync(async () => await _maaService.GetUrlAsync(_options.Url));
         }
 
         private void HandleControlC(object sender, ConsoleCancelEventArgs e)
@@ -129,79 +95,5 @@ namespace maa.perf.test.core
                 af.Terminate();
             }
         }
-
-        private async Task<double> WrapServiceCallAsync(Func<Task<string>> callServiceAsync)
-        {
-            try
-            {
-                await callServiceAsync();
-            }
-            catch (Exception x)
-            {
-                Tracer.TraceError($"Exception caught: {x.ToString()}");
-            }
-
-            return await Task.FromResult(0.0);
-        }
-
-        public async Task<double> CallMixApiSet()
-        {
-            var sampleValue = _rnd.NextDouble();
-            var currentSum = 0.0d;
-
-            foreach (var a in _options.MixFileContent.ApiMix)
-            {
-                if (sampleValue < currentSum + a.Percentage)
-                {
-                    return await GetCallback(a.ApiName)();
-                }
-                currentSum += a.Percentage;
-            }
-
-            // Make sure rounding error doesn't fall through without calling an API
-            return await GetCallback(_options.MixFileContent.ApiMix[_options.MixFileContent.ApiMix.Count - 1].ApiName)();
-        }
-
-        private Func<Task<double>> GetCallback(Api theApi)
-        {
-            switch (theApi)
-            {
-                case Api.AttestOpenEnclave:
-                    if (_options.UsePreviewApiVersion)
-                        return CallAttestSgxPreviewApiVersionAsync;
-                    else
-                        return CallAttestSgxGaApiVersionAsync;
-                case Api.AttestSgx:
-                    return CallAttestSgxGaApiVersionAsync;
-                case Api.GetCerts:
-                    return GetCertsAsync;
-                case Api.GetOpenIdConfiguration:
-                    return GetOpenIdConfigurationAsync;
-                case Api.GetServiceHealth:
-                    return GetServiceHealthAsync;
-                default:
-                    return CallAttestSgxGaApiVersionAsync;
-            }
-        }
-
-        private Func<Task<double>> GetRestApiCallback()
-        {
-            if (!string.IsNullOrEmpty(_options.Url))
-            {
-                return GetUrlAsync;
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(_options.MixFileName))
-                {
-                    return CallMixApiSet;
-                }
-                else
-                {
-                    return GetCallback(_options.RestApi);
-                }
-            }
-        }
-
     }
 }

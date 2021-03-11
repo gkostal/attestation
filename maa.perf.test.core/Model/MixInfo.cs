@@ -1,5 +1,4 @@
 ﻿using maa.perf.test.core.Utils;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,13 +8,13 @@ namespace maa.perf.test.core.Model
     {
         public MixInfo()
         {
-            ApiMix = new List<ApiInfo>();
-            ProviderMix = new List<AttestationProviderInfo>();
+            ApiMix = new List<WeightedApiInfo>();
+            ProviderMix = new List<WeightedAttestationProvidersInfo>();
         }
 
-        public List<ApiInfo> ApiMix { get; set; }
+        public List<WeightedApiInfo> ApiMix { get; set; }
 
-        public List<AttestationProviderInfo> ProviderMix { get; set; }
+        public List<WeightedAttestationProvidersInfo> ProviderMix { get; set; }
 
         public static MixInfo ReadMixInfo(string mixFileName)
         {

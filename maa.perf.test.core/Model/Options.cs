@@ -1,6 +1,5 @@
 ﻿using CommandLine;
 using maa.perf.test.core.Utils;
-using System;
 
 namespace maa.perf.test.core.Model
 {
@@ -33,7 +32,7 @@ namespace maa.perf.test.core.Model
         public string MixFileName { get; set; }
 
         // Or the following
-        
+
         // API info
         [Option('a', "api", Required = false, HelpText = "REST Api to test: {AttestSgx, AttestOpenEnclave, GetOpenIdConfiguration, GetCerts, GetServiceHealth}")]
         public Api RestApi { get; set; }
@@ -58,7 +57,7 @@ namespace maa.perf.test.core.Model
         public int ProviderCount { get; set; }
 
         // The following should always be accurate regardless of how command line parameters are set
-        public MixInfo GetMixInfo() 
+        public MixInfo GetMixInfo()
         {
             var theMixInfo = default(MixInfo);
 
@@ -70,7 +69,7 @@ namespace maa.perf.test.core.Model
             {
                 theMixInfo = new MixInfo();
 
-                theMixInfo.ApiMix.Add(new ApiInfo()
+                theMixInfo.ApiMix.Add(new WeightedApiInfo()
                 {
                     ApiName = this.RestApi,
                     UsePreviewApi = this.UsePreviewApiVersion,
@@ -79,7 +78,7 @@ namespace maa.perf.test.core.Model
                     Weight = 100.0d
                 });
 
-                theMixInfo.ProviderMix.Add(new AttestationProviderInfo()
+                theMixInfo.ProviderMix.Add(new WeightedAttestationProvidersInfo()
                 {
                     DnsName = this.AttestationProvider,
                     TenantNameOverride = this.TenantName,

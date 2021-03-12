@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -15,7 +14,7 @@ namespace maa.perf.test.core.Utils
             public DateTime MaxTime { get; set; }
         }
 
-        private ConcurrentDictionary<(double,long,string), TestRunMetrics> _testRunMetrics = new ConcurrentDictionary<(double, long, string), TestRunMetrics>();
+        private ConcurrentDictionary<(double, long, string), TestRunMetrics> _testRunMetrics = new ConcurrentDictionary<(double, long, string), TestRunMetrics>();
         private double _currentRps;
         private long _currentConnections;
 
@@ -28,7 +27,7 @@ namespace maa.perf.test.core.Utils
         public void MetricsAvailableHandler(IntervalMetrics metrics)
         {
             TestRunMetrics testRunMetrics = null;
-            (double,long,string) key = (_currentRps, _currentConnections, metrics.TestDescription);
+            (double, long, string) key = (_currentRps, _currentConnections, metrics.TestDescription);
 
             if (_testRunMetrics.ContainsKey(key))
             {

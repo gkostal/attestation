@@ -56,14 +56,19 @@ namespace maa.perf.test.core.Maa
             return GetCallback().Invoke(maaService);
         }
 
-        private async Task<double> CallAttestSgxPreviewApiVersionAsync(MaaService maaService)
+        private async Task<double> CallAttestOpenEnclavePreviewAsync(MaaService maaService)
         {
             return await WrapServiceCallAsync(async () => await maaService.AttestOpenEnclaveAsync(new Maa.Preview.AttestOpenEnclaveRequestBody(_enclaveInfo)));
         }
 
-        private async Task<double> CallAttestSgxGaApiVersionAsync(MaaService maaService)
+        private async Task<double> CallAttestOpenEnclaveGaAsync(MaaService maaService)
         {
             return await WrapServiceCallAsync(async () => await maaService.AttestOpenEnclaveAsync(new Maa.Ga.AttestOpenEnclaveRequestBody(_enclaveInfo)));
+        }
+
+        private async Task<double> CallAttestSgxEnclaveGaAsync(MaaService maaService)
+        {
+            return await WrapServiceCallAsync(async () => await maaService.AttestSgxEnclaveAsync(new Maa.Ga.AttestSgxEnclaveRequestBody(_enclaveInfo)));
         }
 
         private async Task<double> GetCertsAsync(MaaService maaService)
@@ -106,14 +111,13 @@ namespace maa.perf.test.core.Maa
             {
                 switch (_apiInfo.ApiName)
                 {
-                    // TODO: AttestSgx should not call OpenEnclave attest!
                     case Api.AttestOpenEnclave:
                         if (_apiInfo.UsePreviewApi)
-                            return CallAttestSgxPreviewApiVersionAsync;
+                            return CallAttestOpenEnclavePreviewAsync;
                         else
-                            return CallAttestSgxGaApiVersionAsync;
+                            return CallAttestOpenEnclaveGaAsync;
                     case Api.AttestSgx:
-                        return CallAttestSgxGaApiVersionAsync;
+                        return CallAttestSgxEnclaveGaAsync;
                     case Api.GetCerts:
                         return GetCertsAsync;
                     case Api.GetOpenIdConfiguration:
@@ -121,7 +125,7 @@ namespace maa.perf.test.core.Maa
                     case Api.GetServiceHealth:
                         return GetServiceHealthAsync;
                     default:
-                        return CallAttestSgxGaApiVersionAsync;
+                        return CallAttestOpenEnclaveGaAsync;
                 }
             }
             else

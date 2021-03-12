@@ -3,7 +3,7 @@ using maa.perf.test.core.Utils;
 
 namespace maa.perf.test.core.Maa.Ga
 {
-    public class AttestOpenEnclaveRequestBody
+    public class AttestSgxEnclaveRequestBody
     {
         public class AttestedData
         {
@@ -11,9 +11,9 @@ namespace maa.perf.test.core.Maa.Ga
             public string DataType { get; set; }
         }
 
-        public AttestOpenEnclaveRequestBody(EnclaveInfo enclaveInfo)
+        public AttestSgxEnclaveRequestBody(EnclaveInfo enclaveInfo)
         {
-            Report = HexHelper.ConvertHexToBase64Url(enclaveInfo.QuoteHex);
+            Quote = HexHelper.ConvertHexToBase64Url(enclaveInfo.QuoteHex, 16);
             RuntimeData = new AttestedData()
             {
                 Data = HexHelper.ConvertHexToBase64Url(enclaveInfo.EnclaveHeldDataHex),
@@ -21,7 +21,7 @@ namespace maa.perf.test.core.Maa.Ga
             };
         }
 
-        public string Report { get; set; }
+        public string Quote { get; set; }
         public AttestedData RuntimeData { get; set; }
         public AttestedData InittimeData { get; set; }
         public string DraftPolicyForAttestation { get; set; }

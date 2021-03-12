@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace maa.perf.test.core.Utils
 {
     public class HexHelper
     {
-        public static string ConvertHexToBase64Url(string hexString)
+        public static string ConvertHexToBase64Url(string hexString, int skipBeginningByteCount = 0)
         {
             byte[] hexBytes = ConvertHexToByteArray(hexString);
+            hexBytes = hexBytes.Skip(skipBeginningByteCount).ToArray();
             return Base64Url.EncodeBytes(hexBytes);
         }
 

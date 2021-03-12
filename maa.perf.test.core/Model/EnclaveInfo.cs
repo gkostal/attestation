@@ -1,6 +1,6 @@
 ﻿using maa.perf.test.core.Utils;
 
-namespace maa.perf.test.core.Maa
+namespace maa.perf.test.core.Model
 {
     public class EnclaveInfo
     {

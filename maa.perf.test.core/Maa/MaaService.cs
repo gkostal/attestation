@@ -43,24 +43,6 @@ namespace maa.perf.test.core.Maa
             _uriScheme = _connectionInfo.UseHttp ? "http" : "https";
             _servicePort = string.IsNullOrEmpty(_connectionInfo.ServicePort) ? (_connectionInfo.UseHttp ? "80" : "443") : _connectionInfo.ServicePort;
 
-            /*
-            const string TenantNameRegEx = @"(\D*)(\d*)";
-            const string ProviderDnsNameRegEx = @"(\D*)(\d*)\..*";
-
-            if (optionsReference.ProviderCount > 1)
-            {
-                if (!this.providerDnsName.Equals("localhost", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    var pre = Regex.Match(this.providerDnsName, ProviderDnsNameRegEx);
-                    this.providerDnsNameBase = pre.Groups[1].Value;
-                }
-                if (!string.IsNullOrEmpty(this.tenantNameOverride))
-                {
-                    var tre = Regex.Match(this.tenantNameOverride, TenantNameRegEx);
-                    this.tenantNameOverrideBase = tre.Groups[1].Value;
-                }
-            }
-            */
         }
 
         public async Task<string> AttestOpenEnclaveAsync(Preview.AttestOpenEnclaveRequestBody requestBody)
@@ -72,6 +54,11 @@ namespace maa.perf.test.core.Maa
         public async Task<string> AttestOpenEnclaveAsync(Ga.AttestOpenEnclaveRequestBody requestBody)
         {
             return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
+        }
+
+        public async Task<string> AttestSgxEnclaveAsync(Ga.AttestSgxEnclaveRequestBody requestBody)
+        {
+            return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/SgxEnclave?api-version=2020-10-01", requestBody);
         }
 
         public async Task<string> GetOpenIdConfigurationAsync()

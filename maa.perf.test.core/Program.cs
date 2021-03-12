@@ -8,6 +8,10 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
+// TODO: 
+//   * Let .NET FX control also control max connections
+//         * So 4 tests might each try to use 10 connections, but the .NET FX might limit the total to 10
+//         * This way fast tests (e.g. get open id metadata) will allow other tests to use some of their connection quota
 namespace maa.perf.test.core
 {
     public class Program
@@ -54,7 +58,7 @@ namespace maa.perf.test.core
                 {
                     var testRunInfo = _mixInfo.TestRuns[i];
                     var asyncRunners = new List<Task>();
-                    
+
                     uberCsvAggregator.SetRpsAndConnections(testRunInfo.TargetRPS, testRunInfo.SimultaneousConnections);
 
                     Tracer.TraceInfo("");

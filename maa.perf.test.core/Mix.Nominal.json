@@ -1,32 +1,8 @@
 {
   "TestRuns": [
     {
-      "SimultaneousConnections": 2,
-      "TargetRPS": 5,
-      "ForceReconnects": false,
-      "RampUpTimeSeconds": 0,
-      "TestTimeSeconds": 10,
-      "EnclaveInfoFile": "./Quotes/enclave.info.release.json"
-    },
-    {
-      "SimultaneousConnections": 4,
-      "TargetRPS": 10,
-      "ForceReconnects": false,
-      "RampUpTimeSeconds": 0,
-      "TestTimeSeconds": 10,
-      "EnclaveInfoFile": "./Quotes/enclave.info.release.json"
-    },
-    {
-      "SimultaneousConnections": 6,
-      "TargetRPS": 15,
-      "ForceReconnects": false,
-      "RampUpTimeSeconds": 0,
-      "TestTimeSeconds": 10,
-      "EnclaveInfoFile": "./Quotes/enclave.info.release.json"
-    },
-    {
-      "SimultaneousConnections": 8,
-      "TargetRPS": 20,
+      "SimultaneousConnections": 1,
+      "TargetRPS": 4,
       "ForceReconnects": false,
       "RampUpTimeSeconds": 0,
       "TestTimeSeconds": 10,
@@ -54,12 +30,6 @@
   "ProviderMix": [
     {
       "DnsName": "sharedscus.scus.test.attest.azure.net",
-      "TenantNameOverride": "",
-      "ProviderCount": 1,
-      "Weight": 25
-    },
-    {
-      "DnsName": "sharedwus.wus.test.attest.azure.net",
       "TenantNameOverride": "",
       "ProviderCount": 1,
       "Weight": 25

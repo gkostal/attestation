@@ -49,7 +49,7 @@ namespace maa.perf.test.core.Model
             {
                 var tr = TestRuns[i];
                 var timeDescription = tr.TestTimeSeconds == int.MaxValue ? "Infinite" : tr.TestTimeSeconds.ToString();
-                Tracer.TraceInfo($"    Test run #{i}   RPS: {tr.TargetRPS}  Connections: {tr.SimultaneousConnections}   Time: {timeDescription}");
+                Tracer.TraceInfo($"    Test run #{i,-5}  RPS: {tr.TargetRPS,-5}  Connections: {tr.SimultaneousConnections,-5}  Time: {timeDescription}");
             }
 
             Tracer.TraceInfo($"");
@@ -57,7 +57,7 @@ namespace maa.perf.test.core.Model
             for (int i = 0; i < ApiMix.Count; i++)
             {
                 var ai = ApiMix[i];
-                Tracer.TraceInfo($"    API called #{i}   Percentage: {ai.Percentage * 100.0d}  Value: {(string.IsNullOrEmpty(ai.Url) ? ai.ApiName.ToString() : ai.Url)}");
+                Tracer.TraceInfo($"    API called #{i,-5}  Percentage: {ai.Percentage * 100.0d,-5}  Value: {(string.IsNullOrEmpty(ai.Url) ? ai.ApiName.ToString() : ai.Url)}");
             }
 
             Tracer.TraceInfo($"");
@@ -65,7 +65,7 @@ namespace maa.perf.test.core.Model
             for (int i = 0; i < ProviderMix.Count; i++)
             {
                 var pi = ProviderMix[i];
-                Tracer.TraceInfo($"    Provider info #{i}   Percentage: {pi.Percentage * 100.0d}  Name: {pi.DnsName}   OverrideName: {pi.TenantNameOverride}   Count: {pi.ProviderCount}");
+                Tracer.TraceInfo($"    Provider info #{i,-5}  Percentage: {pi.Percentage * 100.0d,-5}  Name: {pi.DnsName,-44}   OverrideName: {pi.TenantNameOverride,-20}   Count: {pi.ProviderCount}");
             }
 
             Tracer.TraceInfo($"");

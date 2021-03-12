@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,41 +8,63 @@ namespace maa.perf.test.core.Utils
 {
     class CsvAggregatingMetricsHandler : IDisposable
     {
-        private readonly object _lock = new object();
-        private readonly string _uberDescription;
-        private Dictionary<string, List<IntervalMetrics>> _testMetricDictionary = new Dictionary<string, List<IntervalMetrics>>();
-
-        public CsvAggregatingMetricsHandler(string uberDescription)
+        private class TestRunMetrics
         {
-            _uberDescription = uberDescription;
+            public IntervalMetrics TheIntervalMetrics { get; set; }
+            public DateTime MinTime { get; set; }
+            public DateTime MaxTime { get; set; }
+        }
+
+        private ConcurrentDictionary<(double,long,string), TestRunMetrics> _testRunMetrics = new ConcurrentDictionary<(double, long, string), TestRunMetrics>();
+        private double _currentRps;
+        private long _currentConnections;
+
+        public void SetRpsAndConnections(double rps, long connections)
+        {
+            _currentRps = rps;
+            _currentConnections = connections;
         }
 
         public void MetricsAvailableHandler(IntervalMetrics metrics)
         {
-            List<IntervalMetrics> testMetricsList;
+            TestRunMetrics testRunMetrics = null;
+            (double,long,string) key = (_currentRps, _currentConnections, metrics.TestDescription);
 
-            lock (_lock)
+            if (_testRunMetrics.ContainsKey(key))
             {
-                if (!_testMetricDictionary.ContainsKey(metrics.TestDescription))
+                testRunMetrics = _testRunMetrics[key];
+                lock (testRunMetrics)
                 {
-                    testMetricsList = new List<IntervalMetrics>();
-                    _testMetricDictionary.Add(metrics.TestDescription, testMetricsList);
+                    testRunMetrics.TheIntervalMetrics.Aggregate(metrics);
+                    if (metrics.EndTime < testRunMetrics.MinTime)
+                    {
+                        testRunMetrics.MinTime = metrics.EndTime;
+                    }
+                    if (metrics.EndTime > testRunMetrics.MaxTime)
+                    {
+                        testRunMetrics.MaxTime = metrics.EndTime;
+                    }
                 }
-                else
+            }
+            else
+            {
+                testRunMetrics = new TestRunMetrics()
                 {
-                    testMetricsList = _testMetricDictionary[metrics.TestDescription];
-                }
+                    TheIntervalMetrics = new IntervalMetrics(metrics, metrics.EndTime, metrics.Duration),
+                    MinTime = metrics.EndTime,
+                    MaxTime = metrics.EndTime
+                };
 
-                testMetricsList.Add(metrics);
+                _testRunMetrics.TryAdd(key, testRunMetrics);
             }
         }
 
         public void Dispose()
         {
-            if (_testMetricDictionary.Count > 0)
+            if (_testRunMetrics.Count > 0)
             {
                 var startTime = DateTime.Now;
-                var filePath = string.Format("{0}-{1}-{2}-{3}-{4}-{5}-{6}-{7}.csv",
+                var filePath = string.Format("{0}-{1}-{2:d2}-{3:d2}-{4:d2}-{5:d2}-{6:d2}-{7}.csv",
                     Environment.MachineName,
                     startTime.Year,
                     startTime.Month,
@@ -49,41 +72,51 @@ namespace maa.perf.test.core.Utils
                     startTime.Hour,
                     startTime.Minute,
                     startTime.Second,
-                    _uberDescription);
+                    "uber");
 
                 using (var fileWriter = File.AppendText(filePath))
                 {
-                    fileWriter.WriteLine("\"ResourceDescription\",\"TestDescription\",\"DateTime\",\"DurationSeconds\",\"Count\",\"RPS\",\"AverageLatency\",\"P50\",\"P90\",\"P95\",\"P99\",\"P99.5\",\"P99.9\"");
+                    fileWriter.WriteLine("\"TotalRPS\"," +
+                                         "\"Connections\"," +
+                                         "\"ResourceDescription\"," +
+                                         "\"TestDescription\"," +
+                                         "\"DateTime\"," +
+                                         "\"DurationSeconds\"," +
+                                         "\"Count\"," +
+                                         "\"RPS\"," +
+                                         "\"AverageLatency\"," +
+                                         "\"P50\"," +
+                                         "\"P90\"," +
+                                         "\"P95\"," +
+                                         "\"P99\"," +
+                                         "\"P99.5\"," +
+                                         "\"P99.9\"");
 
-                    var sortedKeys = _testMetricDictionary.Keys.ToArray();
+                    var sortedKeys = _testRunMetrics.Keys.ToArray();
                     Array.Sort(sortedKeys);
 
                     for (int i = 0; i < sortedKeys.Length; i++)
                     {
-                        var metrics = _testMetricDictionary[sortedKeys[i]];
-                        var endTime = metrics[^1].EndTime;
-                        var duration = metrics[^1].EndTime - metrics[0].EndTime + TimeSpan.FromSeconds(1);
-                        var currentAggregation = new IntervalMetrics(metrics[0], endTime, duration);
+                        var key = sortedKeys[i];
+                        var metrics = _testRunMetrics[key];
+                        var finalMetric = new IntervalMetrics(metrics.TheIntervalMetrics, metrics.MinTime, metrics.MaxTime - metrics.MinTime + TimeSpan.FromSeconds(1));
 
-                        for (int j = 1; j < metrics.Count; j++)
-                        {
-                            currentAggregation.Aggregate(metrics[j]);
-                        }
-
-                        var csvLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12}",
-                            currentAggregation.ResourceDescription,
-                            currentAggregation.TestDescription,
-                            currentAggregation.EndTime.ToString(),
-                            currentAggregation.Duration.TotalSeconds,
-                            currentAggregation.Count,
-                            currentAggregation.RPS,
-                            currentAggregation.AverageLatencyMS,
-                            currentAggregation.Percentile50,
-                            currentAggregation.Percentile90,
-                            currentAggregation.Percentile95,
-                            currentAggregation.Percentile99,
-                            currentAggregation.Percentile995,
-                            currentAggregation.Percentile999);
+                        var csvLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14}",
+                            key.Item1,
+                            key.Item2,
+                            finalMetric.ResourceDescription,
+                            finalMetric.TestDescription,
+                            finalMetric.EndTime.ToString(),
+                            finalMetric.Duration.TotalSeconds,
+                            finalMetric.Count,
+                            finalMetric.RPS,
+                            finalMetric.AverageLatencyMS,
+                            finalMetric.Percentile50,
+                            finalMetric.Percentile90,
+                            finalMetric.Percentile95,
+                            finalMetric.Percentile99,
+                            finalMetric.Percentile995,
+                            finalMetric.Percentile999);
 
                         fileWriter.WriteLine(csvLine);
                     }

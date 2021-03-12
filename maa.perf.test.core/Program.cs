@@ -47,24 +47,17 @@ namespace maa.perf.test.core
             _mixInfo = _options.GetMixInfo();
             _mixInfo.Trace();
 
-            // TODO: Loop for various RPS rates over the following logic, creating a merged CSV file with all results
-            //       IOW, add another column to the table with the Total RPS rate
-            //       And append all runs onto the same file
-            // THOUGHTS:
-            //       For options -- either all options come from a file or all options come from the command line parameters
-            //                   -- this will simplify, right?
-
-            for (int i = 0; i < _mixInfo.TestRuns.Count && !_terminate; i++)
+            using (var uberCsvAggregator = new CsvAggregatingMetricsHandler())
             {
-                var testRunInfo = _mixInfo.TestRuns[i];
-
-                using (var uberCsvAggregator = new CsvAggregatingMetricsHandler($"tr-{testRunInfo.TargetRPS}-{testRunInfo.SimultaneousConnections}"))
+                for (int i = 0; i < _mixInfo.TestRuns.Count && !_terminate; i++)
                 {
+                    var testRunInfo = _mixInfo.TestRuns[i];
+                    var asyncRunners = new List<Task>();
+                    
+                    uberCsvAggregator.SetRpsAndConnections(testRunInfo.TargetRPS, testRunInfo.SimultaneousConnections);
+
                     Tracer.TraceInfo("");
                     Tracer.TraceInfo($"Starting test run #{i}   RPS: {testRunInfo.TargetRPS}  Connections: {testRunInfo.SimultaneousConnections}");
-
-                    // Housekeeping
-                    List<Task> asyncRunners = new List<Task>();
 
                     // Handle ramp up if needed
                     await RampUpAsync(testRunInfo);

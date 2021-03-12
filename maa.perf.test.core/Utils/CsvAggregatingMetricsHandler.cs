@@ -54,7 +54,7 @@ namespace maa.perf.test.core.Utils
             
             using (var fileWriter = File.AppendText(filePath))
             {
-                fileWriter.WriteLine("\"ResourceDescription\",\"TestDescription\",\"IntervalTime\",\"Count\",\"RPS\",\"AverageLatency\",\"P50\",\"P90\",\"P95\",\"P99\",\"P99.5\",\"P99.9\"");
+                fileWriter.WriteLine("\"ResourceDescription\",\"TestDescription\",\"DateTime\",\"DurationSeconds\",\"Count\",\"RPS\",\"AverageLatency\",\"P50\",\"P90\",\"P95\",\"P99\",\"P99.5\",\"P99.9\"");
 
                 var sortedKeys = _testMetricDictionary.Keys.ToArray();
                 Array.Sort(sortedKeys);
@@ -71,10 +71,11 @@ namespace maa.perf.test.core.Utils
                         currentAggregation.Aggregate(metrics[j]);
                     }
 
-                    var csvLine = string.Format("{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}",
+                    var csvLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12}",
                         currentAggregation.ResourceDescription,
                         currentAggregation.TestDescription,
                         currentAggregation.EndTime.ToString(),
+                        currentAggregation.Duration.TotalSeconds,
                         currentAggregation.Count,
                         currentAggregation.RPS,
                         currentAggregation.AverageLatencyMS,

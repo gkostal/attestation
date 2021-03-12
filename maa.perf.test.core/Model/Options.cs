@@ -132,7 +132,7 @@ namespace maa.perf.test.core.Model
             Tracer.TraceInfo($"Tenant Name Override     : {TenantName}");
             Tracer.TraceInfo($"Use HTTP                 : {UseHttp}");
             Tracer.TraceInfo($"Url                      : {Url}");
-            Tracer.TraceInfo($"RampUpTimeSeconds                   : {RampUpTimeSeconds}");
+            Tracer.TraceInfo($"RampUpTimeSeconds        : {RampUpTimeSeconds}");
             Tracer.TraceInfo($"");
         }
     }

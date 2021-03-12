@@ -11,7 +11,7 @@ namespace maa.perf.test.core.Utils
         private int _simultaneousCount;
         private List<IntervalMetrics> _lookbackData = new List<IntervalMetrics>();
 
-        public ConsoleAggregatingMetricsHandler(int simultaneousCount, int lookbackSeconds = 15)
+        public ConsoleAggregatingMetricsHandler(int simultaneousCount, int lookbackSeconds = 60)
         {
             _simultaneousCount = simultaneousCount;
             _lookbackSeconds = lookbackSeconds;

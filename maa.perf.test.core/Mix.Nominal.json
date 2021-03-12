@@ -19,13 +19,7 @@
   ],
   "ProviderMix": [
     {
-      "DnsName": "sharedeus.eus.test.attest.azure.net",
-      "TenantNameOverride": "",
-      "ProviderCount": 1,
-      "Weight": 25
-    },
-    {
-      "DnsName": "sharedwus.wus.test.attest.azure.net",
+      "DnsName": "sharedscus.scus.test.attest.azure.net",
       "TenantNameOverride": "",
       "ProviderCount": 1,
       "Weight": 25

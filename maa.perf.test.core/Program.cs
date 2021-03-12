@@ -45,37 +45,45 @@ namespace maa.perf.test.core
             // Complete all HTTP conversations before exiting application
             Console.CancelKeyPress += HandleControlC;
 
-            // Housekeeping
-            List<Task> asyncRunners = new List<Task>();
-            _mixInfo = _options.GetMixInfo();
-
-            // Handle ramp up if needed
-            await RampUpAsync();
-
-            // Initiate separate asyncfor for each API in the mix
-            if (!_terminate)
+            using (var uberCsvAggregator = new CsvAggregatingMetricsHandler("uber"))
             {
-                foreach (var apiInfo in _mixInfo.ApiMix)
+                // Housekeeping
+                List<Task> asyncRunners = new List<Task>();
+                _mixInfo = _options.GetMixInfo();
+
+                // Handle ramp up if needed
+                await RampUpAsync();
+
+                // Initiate separate asyncfor for each API in the mix
+                if (!_terminate)
                 {
-                    var myFor = new AsyncFor(_options.TargetRPS * apiInfo.Percentage, GetProviderMixDescription(_mixInfo), apiInfo.ApiName.ToString());
-                    if (_mixInfo.ApiMix.Count > 1)
+                    foreach (var apiInfo in _mixInfo.ApiMix)
                     {
-                        myFor.PerSecondMetricsAvailable += new ConsoleAggregatingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
-                    }
-                    else
-                    {
-                        myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
-                        myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
-                    }
+                        var myFor = new AsyncFor(_options.TargetRPS * apiInfo.Percentage, GetProviderMixDescription(_mixInfo), apiInfo.ApiName.ToString());
+                        if (_mixInfo.ApiMix.Count > 1)
+                        {
+                            myFor.PerSecondMetricsAvailable += new ConsoleAggregatingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
+                        }
+                        else
+                        {
+                            myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
+                            myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
+                        }
 
-                    _asyncForInstances.Add(myFor);
-                    asyncRunners.Add(myFor.For(TimeSpan.FromSeconds(_options.TestTimeSeconds), _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi));
+                        if (_options.TestTimeSeconds != int.MaxValue)
+                        {
+                            myFor.PerSecondMetricsAvailable += uberCsvAggregator.MetricsAvailableHandler;
+                        }
+
+                        _asyncForInstances.Add(myFor);
+                        asyncRunners.Add(myFor.For(TimeSpan.FromSeconds(_options.TestTimeSeconds), _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi));
+                    }
                 }
-            }
 
-            // Wait for all to be complete (happens when crtl-c is hit)
-            await Task.WhenAll(asyncRunners.ToArray());
-            Tracer.TraceInfo($"Organized shutdown complete.");
+                // Wait for all to be complete (happens when crtl-c is hit)
+                await Task.WhenAll(asyncRunners.ToArray());
+                Tracer.TraceInfo($"Organized shutdown complete.");
+            }
         }
 
         private async Task RampUpAsync()

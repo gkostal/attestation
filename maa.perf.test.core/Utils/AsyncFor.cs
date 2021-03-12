@@ -220,7 +220,7 @@ namespace maa.perf.test.core.Utils
                 // *******************************
                 // Slow down if needed
                 // *******************************
-                if (_enabled)
+                if (shouldContinue() && _enabled)
                 {
                     if ((_getTps() > 0) && (_throttlingTimer.Elapsed.Milliseconds > 0))
                     {
@@ -229,11 +229,11 @@ namespace maa.perf.test.core.Utils
                         long delayMilliseconds = (long)(minMilliseconds - (double)_throttlingTimer.Elapsed.TotalMilliseconds);
 
                         // Delay if running too fast
-                        while (delayMilliseconds > 0 && _enabled)
+                        while (delayMilliseconds > 0 && _enabled && shouldContinue())
                         {
-                            // Delay with a bit of jitter
+                            // Delay with a bit of jitter and no longer than 100ms (so that we exit gracefully at the stop time if set)
                             int currentDelay = (int)(delayMilliseconds) + _rnd.Next(0, 25);
-                            await Task.Delay(currentDelay);
+                            await Task.Delay(Math.Min(currentDelay, 100));
 
                             // Determine if we still need to delay
                             minMilliseconds = ((double)_throttlingCurrentCount / (double)_getTps()) * 1000.0;

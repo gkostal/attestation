@@ -1,8 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Microsoft.Identity.Client;
-using Newtonsoft.Json;
 
 namespace maa.perf.test.core.Model
 {

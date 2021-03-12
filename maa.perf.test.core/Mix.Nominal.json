@@ -7,6 +7,14 @@
       "RampUpTimeSeconds": 0,
       "TestTimeSeconds": 5,
       "EnclaveInfoFile": "./Quotes/enclave.info.release.json"
+    },
+    {
+      "SimultaneousConnections": 4,
+      "TargetRPS": 10,
+      "ForceReconnects": false,
+      "RampUpTimeSeconds": 0,
+      "TestTimeSeconds": 5,
+      "EnclaveInfoFile": "./Quotes/enclave.info.release.json"
     }
   ] ,
   "ApiMix": [

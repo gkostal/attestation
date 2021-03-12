@@ -3,7 +3,7 @@ using System.IO;
 
 namespace maa.perf.test.core.Utils
 {
-    class CsvFileMetricsHandler 
+    class CsvFileMetricsHandler
     {
         public CsvFileMetricsHandler()
         {

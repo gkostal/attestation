@@ -1,6 +1,6 @@
-﻿using System;
+﻿using maa.perf.test.core.Model;
+using System;
 using System.Collections.Generic;
-using maa.perf.test.core.Model;
 
 namespace maa.perf.test.core.Utils
 {
@@ -36,7 +36,7 @@ namespace maa.perf.test.core.Utils
             return allSamples[^1];
         }
 
-       
+
         public static T GetRandomSample<T>(this List<T> allSamples)
         {
             return allSamples[_rnd.Next(0, allSamples.Count)];

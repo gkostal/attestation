@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace maa.perf.test.core.Utils
 {
@@ -41,55 +38,58 @@ namespace maa.perf.test.core.Utils
 
         public void Dispose()
         {
-            var startTime = DateTime.Now;
-            var filePath = string.Format("{0}-{1}-{2}-{3}-{4}-{5}-{6}-{7}.csv",
-                Environment.MachineName,
-                startTime.Year,
-                startTime.Month,
-                startTime.Day,
-                startTime.Hour,
-                startTime.Minute,
-                startTime.Second,
-                _uberDescription);
-            
-            using (var fileWriter = File.AppendText(filePath))
+            if (_testMetricDictionary.Count > 0)
             {
-                fileWriter.WriteLine("\"ResourceDescription\",\"TestDescription\",\"DateTime\",\"DurationSeconds\",\"Count\",\"RPS\",\"AverageLatency\",\"P50\",\"P90\",\"P95\",\"P99\",\"P99.5\",\"P99.9\"");
+                var startTime = DateTime.Now;
+                var filePath = string.Format("{0}-{1}-{2}-{3}-{4}-{5}-{6}-{7}.csv",
+                    Environment.MachineName,
+                    startTime.Year,
+                    startTime.Month,
+                    startTime.Day,
+                    startTime.Hour,
+                    startTime.Minute,
+                    startTime.Second,
+                    _uberDescription);
 
-                var sortedKeys = _testMetricDictionary.Keys.ToArray();
-                Array.Sort(sortedKeys);
-
-                for (int i = 0; i < sortedKeys.Length; i++)
+                using (var fileWriter = File.AppendText(filePath))
                 {
-                    var metrics = _testMetricDictionary[sortedKeys[i]];
-                    var endTime = metrics[^1].EndTime;
-                    var duration = metrics[^1].EndTime - metrics[0].EndTime + TimeSpan.FromSeconds(1);
-                    var currentAggregation = new IntervalMetrics(metrics[0], endTime, duration);
+                    fileWriter.WriteLine("\"ResourceDescription\",\"TestDescription\",\"DateTime\",\"DurationSeconds\",\"Count\",\"RPS\",\"AverageLatency\",\"P50\",\"P90\",\"P95\",\"P99\",\"P99.5\",\"P99.9\"");
 
-                    for (int j = 1; j < metrics.Count; j++)
+                    var sortedKeys = _testMetricDictionary.Keys.ToArray();
+                    Array.Sort(sortedKeys);
+
+                    for (int i = 0; i < sortedKeys.Length; i++)
                     {
-                        currentAggregation.Aggregate(metrics[j]);
+                        var metrics = _testMetricDictionary[sortedKeys[i]];
+                        var endTime = metrics[^1].EndTime;
+                        var duration = metrics[^1].EndTime - metrics[0].EndTime + TimeSpan.FromSeconds(1);
+                        var currentAggregation = new IntervalMetrics(metrics[0], endTime, duration);
+
+                        for (int j = 1; j < metrics.Count; j++)
+                        {
+                            currentAggregation.Aggregate(metrics[j]);
+                        }
+
+                        var csvLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12}",
+                            currentAggregation.ResourceDescription,
+                            currentAggregation.TestDescription,
+                            currentAggregation.EndTime.ToString(),
+                            currentAggregation.Duration.TotalSeconds,
+                            currentAggregation.Count,
+                            currentAggregation.RPS,
+                            currentAggregation.AverageLatencyMS,
+                            currentAggregation.Percentile50,
+                            currentAggregation.Percentile90,
+                            currentAggregation.Percentile95,
+                            currentAggregation.Percentile99,
+                            currentAggregation.Percentile995,
+                            currentAggregation.Percentile999);
+
+                        fileWriter.WriteLine(csvLine);
                     }
 
-                    var csvLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12}",
-                        currentAggregation.ResourceDescription,
-                        currentAggregation.TestDescription,
-                        currentAggregation.EndTime.ToString(),
-                        currentAggregation.Duration.TotalSeconds,
-                        currentAggregation.Count,
-                        currentAggregation.RPS,
-                        currentAggregation.AverageLatencyMS,
-                        currentAggregation.Percentile50,
-                        currentAggregation.Percentile90,
-                        currentAggregation.Percentile95,
-                        currentAggregation.Percentile99,
-                        currentAggregation.Percentile995,
-                        currentAggregation.Percentile999);
-
-                    fileWriter.WriteLine(csvLine);
+                    fileWriter.Close();
                 }
-
-                fileWriter.Close();
             }
         }
     }

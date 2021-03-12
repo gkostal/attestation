@@ -86,6 +86,16 @@ namespace maa.perf.test.core.Model
             {
                 theMixInfo = new MixInfo();
 
+                theMixInfo.TestRuns.Add(new TestRunInfo()
+                {
+                    SimultaneousConnections = this.SimultaneousConnections,
+                    TargetRPS = this.TargetRPS,
+                    RampUpTimeSeconds = this.RampUpTimeSeconds,
+                    TestTimeSeconds = this.TestTimeSeconds,
+                    ForceReconnects = this.ForceReconnects,
+                    EnclaveInfoFile = this.EnclaveInfoFile
+                });
+
                 theMixInfo.ApiMix.Add(new WeightedApiInfo()
                 {
                     ApiName = this.RestApi,

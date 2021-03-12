@@ -36,8 +36,6 @@ namespace maa.perf.test.core
             }
 
             Tracer.CurrentTracingLevel = _options.Verbose ? TracingLevel.Verbose : TracingLevel.Info;
-
-            _options.Trace();
         }
 
         public async Task RunAsync()
@@ -45,65 +43,80 @@ namespace maa.perf.test.core
             // Complete all HTTP conversations before exiting application
             Console.CancelKeyPress += HandleControlC;
 
+            // Retrieve all run configuration settings
+            _mixInfo = _options.GetMixInfo();
+            _mixInfo.Trace();
+
             // TODO: Loop for various RPS rates over the following logic, creating a merged CSV file with all results
             //       IOW, add another column to the table with the Total RPS rate
             //       And append all runs onto the same file
             // THOUGHTS:
             //       For options -- either all options come from a file or all options come from the command line parameters
             //                   -- this will simplify, right?
-            using (var uberCsvAggregator = new CsvAggregatingMetricsHandler("uber"))
+
+            for (int i = 0; i < _mixInfo.TestRuns.Count && !_terminate; i++)
             {
-                // Housekeeping
-                List<Task> asyncRunners = new List<Task>();
-                _mixInfo = _options.GetMixInfo();
+                var testRunInfo = _mixInfo.TestRuns[i];
 
-                // Handle ramp up if needed
-                await RampUpAsync();
-
-                // Initiate separate asyncfor for each API in the mix
-                if (!_terminate)
+                using (var uberCsvAggregator = new CsvAggregatingMetricsHandler($"tr-{testRunInfo.TargetRPS}-{testRunInfo.SimultaneousConnections}"))
                 {
-                    foreach (var apiInfo in _mixInfo.ApiMix)
+                    Tracer.TraceInfo("");
+                    Tracer.TraceInfo($"Starting test run #{i}   RPS: {testRunInfo.TargetRPS}  Connections: {testRunInfo.SimultaneousConnections}");
+
+                    // Housekeeping
+                    List<Task> asyncRunners = new List<Task>();
+
+                    // Handle ramp up if needed
+                    await RampUpAsync(testRunInfo);
+
+                    // Initiate separate asyncfor for each API in the mix
+                    if (!_terminate)
                     {
-                        var myFor = new AsyncFor(_options.TargetRPS * apiInfo.Percentage, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo));
-                        if (_mixInfo.ApiMix.Count > 1)
+                        foreach (var apiInfo in _mixInfo.ApiMix)
                         {
-                            myFor.PerSecondMetricsAvailable += new ConsoleAggregatingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
-                        }
-                        else
-                        {
-                            myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
-                            myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
-                        }
+                            var myFor = new AsyncFor(testRunInfo.TargetRPS * apiInfo.Percentage, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo));
+                            if (_mixInfo.ApiMix.Count > 1)
+                            {
+                                myFor.PerSecondMetricsAvailable += new ConsoleAggregatingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
+                            }
+                            else
+                            {
+                                myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
+                                myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
+                            }
 
-                        if (_options.TestTimeSeconds != int.MaxValue)
-                        {
-                            myFor.PerSecondMetricsAvailable += uberCsvAggregator.MetricsAvailableHandler;
-                        }
+                            if (testRunInfo.TestTimeSeconds != int.MaxValue)
+                            {
+                                myFor.PerSecondMetricsAvailable += uberCsvAggregator.MetricsAvailableHandler;
+                            }
 
-                        _asyncForInstances.Add(myFor);
-                        asyncRunners.Add(myFor.For(TimeSpan.FromSeconds(_options.TestTimeSeconds), _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi));
+                            _asyncForInstances.Add(myFor);
+                            asyncRunners.Add(myFor.For(TimeSpan.FromSeconds(testRunInfo.TestTimeSeconds), testRunInfo.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects).CallApi));
+                        }
                     }
-                }
 
-                // Wait for all to be complete (happens when crtl-c is hit)
-                await Task.WhenAll(asyncRunners.ToArray());
-                Tracer.TraceInfo($"Organized shutdown complete.");
+                    // Wait for all to be complete (happens when crtl-c is hit)
+                    await Task.WhenAll(asyncRunners.ToArray());
+
+                    Tracer.TraceInfo("");
+                    Tracer.TraceInfo($"Completed test run #{i}   RPS: {testRunInfo.TargetRPS}  Connections: {testRunInfo.SimultaneousConnections}");
+                }
             }
+            Tracer.TraceInfo($"Organized shutdown complete.");
         }
 
-        private async Task RampUpAsync()
+        private async Task RampUpAsync(TestRunInfo testRunInfo)
         {
             // Handle ramp up if defined
-            if (_options.RampUpTimeSeconds > 4 && !_terminate)
+            if (testRunInfo.RampUpTimeSeconds > 4 && !_terminate)
             {
                 Tracer.TraceInfo($"Ramping up starts.");
 
                 DateTime startTime = DateTime.Now;
-                DateTime endTime = startTime + TimeSpan.FromSeconds(_options.RampUpTimeSeconds);
-                int numberIntervals = Math.Min(_options.RampUpTimeSeconds / 5, 6);
+                DateTime endTime = startTime + TimeSpan.FromSeconds(testRunInfo.RampUpTimeSeconds);
+                int numberIntervals = Math.Min(testRunInfo.RampUpTimeSeconds / 5, 6);
                 TimeSpan intervalLength = (endTime - startTime) / numberIntervals;
-                double intervalRpsDelta = ((double)_options.TargetRPS) / ((double)numberIntervals);
+                double intervalRpsDelta = ((double)testRunInfo.TargetRPS) / ((double)numberIntervals);
                 for (int i = 0; i < numberIntervals && !_terminate; i++)
                 {
                     var apiInfo = _mixInfo.ApiMix[i % _mixInfo.ApiMix.Count];
@@ -115,7 +128,7 @@ namespace maa.perf.test.core
                     myRampUpFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
                     _asyncForInstances.Add(myRampUpFor);
 
-                    await myRampUpFor.For(intervalLength, _options.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, _options.EnclaveInfoFile, _options.ForceReconnects).CallApi);
+                    await myRampUpFor.For(intervalLength, testRunInfo.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects).CallApi);
                 }
                 Tracer.TraceInfo($"Ramping up complete.");
             }

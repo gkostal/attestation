@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using maa.perf.test.core.Model;
 using maa.perf.test.core.Utils;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace maa.perf.test.core.Maa
 {

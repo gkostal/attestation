@@ -25,21 +25,37 @@ namespace maa.perf.test.core.Maa
 
         public Task<double> CallApi()
         {
-            var randomProvidersDescription = _weightedProviders.GetRandomWeightedSample();
-            var individualProviders = randomProvidersDescription.GetAttestationProviders();
-            var randomSpecificProvider = individualProviders.GetRandomSample();
+            MaaConnectionInfo maaConnectionInfo = null;
 
-            var maaConnectionInfo = new MaaConnectionInfo()
+            if (string.IsNullOrEmpty(_apiInfo.Url))
             {
-                DnsName = randomSpecificProvider.DnsName,
-                TenantNameOverride = randomSpecificProvider.TenantNameOverride,
-                ForceReconnects = _forceReconnects,
-                ServicePort = _apiInfo.ServicePort,
-                UseHttp = _apiInfo.UseHttp
-            };
+                var randomProvidersDescription = _weightedProviders.GetRandomWeightedSample();
+                var individualProviders = randomProvidersDescription.GetAttestationProviders();
+                var randomSpecificProvider = individualProviders.GetRandomSample();
+
+                maaConnectionInfo = new MaaConnectionInfo()
+                {
+                    DnsName = randomSpecificProvider.DnsName,
+                    TenantNameOverride = randomSpecificProvider.TenantNameOverride,
+                    ForceReconnects = _forceReconnects,
+                    ServicePort = _apiInfo.ServicePort,
+                    UseHttp = _apiInfo.UseHttp
+                };
+            }
+            else
+            {
+                maaConnectionInfo = new MaaConnectionInfo()
+                {
+                    DnsName = string.Empty,
+                    TenantNameOverride = string.Empty,
+                    ForceReconnects = _forceReconnects,
+                    ServicePort = _apiInfo.ServicePort,
+                    UseHttp = _apiInfo.UseHttp
+                };
+            }
 
             var maaService = new MaaService(maaConnectionInfo);
-            return GetCallback(_apiInfo)(maaService);
+            return GetCallback().Invoke(maaService);
         }
 
         private async Task<double> CallAttestSgxPreviewApiVersionAsync(MaaService maaService)
@@ -67,6 +83,11 @@ namespace maa.perf.test.core.Maa
             return await WrapServiceCallAsync(async () => await maaService.GetServiceHealthAsync());
         }
 
+        private async Task<double> GetUrlAsync(MaaService maaService)
+        {
+            return await WrapServiceCallAsync(async () => await maaService.GetUrlAsync(_apiInfo.Url));
+        }
+
         private async Task<double> WrapServiceCallAsync(Func<Task<string>> callServiceAsync)
         {
             try
@@ -81,25 +102,32 @@ namespace maa.perf.test.core.Maa
             return await Task.FromResult(0.0);
         }
 
-        private Func<MaaService, Task<double>> GetCallback(ApiInfo theApiInfo)
+        private Func<MaaService, Task<double>> GetCallback()
         {
-            switch (theApiInfo.ApiName)
+            if (string.IsNullOrEmpty(_apiInfo.Url))
             {
-                case Api.AttestOpenEnclave:
-                    if (theApiInfo.UsePreviewApi)
-                        return CallAttestSgxPreviewApiVersionAsync;
-                    else
+                switch (_apiInfo.ApiName)
+                {
+                    case Api.AttestOpenEnclave:
+                        if (_apiInfo.UsePreviewApi)
+                            return CallAttestSgxPreviewApiVersionAsync;
+                        else
+                            return CallAttestSgxGaApiVersionAsync;
+                    case Api.AttestSgx:
                         return CallAttestSgxGaApiVersionAsync;
-                case Api.AttestSgx:
-                    return CallAttestSgxGaApiVersionAsync;
-                case Api.GetCerts:
-                    return GetCertsAsync;
-                case Api.GetOpenIdConfiguration:
-                    return GetOpenIdConfigurationAsync;
-                case Api.GetServiceHealth:
-                    return GetServiceHealthAsync;
-                default:
-                    return CallAttestSgxGaApiVersionAsync;
+                    case Api.GetCerts:
+                        return GetCertsAsync;
+                    case Api.GetOpenIdConfiguration:
+                        return GetOpenIdConfigurationAsync;
+                    case Api.GetServiceHealth:
+                        return GetServiceHealthAsync;
+                    default:
+                        return CallAttestSgxGaApiVersionAsync;
+                }
+            }
+            else
+            {
+                return GetUrlAsync;
             }
         }
     }

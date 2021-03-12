@@ -1,4 +1,14 @@
 {
+  "TestRuns": [
+    {
+      "SimultaneousConnections": 2,
+      "TargetRPS": 5,
+      "ForceReconnects": false,
+      "RampUpTimeSeconds": 0,
+      "TestTimeSeconds": 5,
+      "EnclaveInfoFile": "./Quotes/enclave.info.release.json"
+    }
+  ] ,
   "ApiMix": [
     {
       "ApiName": "AttestOpenEnclave",

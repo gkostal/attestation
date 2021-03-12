@@ -11,6 +11,7 @@ namespace maa.perf.test.core.Model
             UsePreviewApi = false;
             ServicePort = "";
             UseHttp = false;
+            Url = string.Empty;
         }
 
         [JsonProperty]
@@ -21,5 +22,7 @@ namespace maa.perf.test.core.Model
         public string ServicePort { get; set; }
         [JsonProperty]
         public bool UseHttp { get; set; }
+        [JsonProperty]
+        public string Url { get; set; }
     }
 }

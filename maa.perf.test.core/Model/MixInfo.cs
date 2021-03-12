@@ -8,9 +8,12 @@ namespace maa.perf.test.core.Model
     {
         public MixInfo()
         {
+            TestRuns = new List<TestRunInfo>();
             ApiMix = new List<WeightedApiInfo>();
             ProviderMix = new List<WeightedAttestationProvidersInfo>();
         }
+
+        public List<TestRunInfo> TestRuns { get; set; }
 
         public List<WeightedApiInfo> ApiMix { get; set; }
 

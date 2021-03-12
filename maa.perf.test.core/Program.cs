@@ -45,6 +45,12 @@ namespace maa.perf.test.core
             // Complete all HTTP conversations before exiting application
             Console.CancelKeyPress += HandleControlC;
 
+            // TODO: Loop for various RPS rates over the following logic, creating a merged CSV file with all results
+            //       IOW, add another column to the table with the Total RPS rate
+            //       And append all runs onto the same file
+            // THOUGHTS:
+            //       For options -- either all options come from a file or all options come from the command line parameters
+            //                   -- this will simplify, right?
             using (var uberCsvAggregator = new CsvAggregatingMetricsHandler("uber"))
             {
                 // Housekeeping
@@ -59,7 +65,7 @@ namespace maa.perf.test.core
                 {
                     foreach (var apiInfo in _mixInfo.ApiMix)
                     {
-                        var myFor = new AsyncFor(_options.TargetRPS * apiInfo.Percentage, GetProviderMixDescription(_mixInfo), apiInfo.ApiName.ToString());
+                        var myFor = new AsyncFor(_options.TargetRPS * apiInfo.Percentage, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo));
                         if (_mixInfo.ApiMix.Count > 1)
                         {
                             myFor.PerSecondMetricsAvailable += new ConsoleAggregatingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
@@ -105,7 +111,7 @@ namespace maa.perf.test.core
                     long intervalRps = (long)Math.Round((i + 1) * intervalRpsDelta);
                     Tracer.TraceInfo($"Ramping up. RPS = {intervalRps}");
 
-                    AsyncFor myRampUpFor = new AsyncFor(intervalRps, GetProviderMixDescription(_mixInfo), $"{apiInfo.ApiName}");
+                    AsyncFor myRampUpFor = new AsyncFor(intervalRps, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo));
                     myRampUpFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
                     _asyncForInstances.Add(myRampUpFor);
 
@@ -115,16 +121,28 @@ namespace maa.perf.test.core
             }
         }
 
-        private string GetProviderMixDescription(MixInfo mixInfo)
+        private string GetResourceDescription(ApiInfo apiInfo, MixInfo mixInfo)
         {
-            var description = mixInfo.ProviderMix[0].DnsName;
-            
-            if (mixInfo.ProviderMix.Count > 1)
+            if (string.IsNullOrEmpty(apiInfo.Url))
             {
-                description = $"{description} + {mixInfo.ProviderMix.Count - 1} more";
-            }
+                var description = mixInfo.ProviderMix[0].DnsName;
 
-            return description;
+                if (mixInfo.ProviderMix.Count > 1)
+                {
+                    description = $"{description} + {mixInfo.ProviderMix.Count - 1} more";
+                }
+
+                return description;
+            }
+            else
+            {
+                return apiInfo.Url;
+            }
+        }
+
+        private string GetTestDescription(ApiInfo apiInfo)
+        {
+            return string.IsNullOrEmpty(apiInfo.Url) ? apiInfo.ApiName.ToString() : "GetUrl";
         }
 
         private void HandleControlC(object sender, ConsoleCancelEventArgs e)

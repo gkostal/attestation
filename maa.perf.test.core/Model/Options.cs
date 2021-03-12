@@ -13,6 +13,10 @@ namespace maa.perf.test.core.Model
     //
     public class Options
     {
+        // Global
+        [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages")]
+        public bool Verbose { get; set; }
+
         // ******************************************************************
         // Option #1 - the mixfile
         // ******************************************************************
@@ -24,7 +28,7 @@ namespace maa.perf.test.core.Model
         // Option #2 - command line parameters
         // ******************************************************************
 
-        // Global stuff
+        // Orchestration info
         [Option('c', "connections", Required = false, HelpText = "Number of simultaneous connections (and calls) to the MAA service")]
         public long SimultaneousConnections { get; set; }
 
@@ -43,12 +47,6 @@ namespace maa.perf.test.core.Model
         [Option('q', "quote", Required = false, HelpText = "Enclave info file containing the SGX quote")]
         public string EnclaveInfoFile { get; set; }
 
-        [Option('u', "url", Required = false, HelpText = "Load test a HTTP GET request for the provided URL")]
-        public string Url { get; set; }
-
-        [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages")]
-        public bool Verbose { get; set; }
-
         // API info
         [Option('a', "api", Required = false, HelpText = "REST Api to test: {AttestSgx, AttestOpenEnclave, GetOpenIdConfiguration, GetCerts, GetServiceHealth}")]
         public Api RestApi { get; set; }
@@ -61,6 +59,9 @@ namespace maa.perf.test.core.Model
 
         [Option('h', "http", Required = false, HelpText = "Connect via HTTP (default is HTTPS)")]
         public bool UseHttp { get; set; }
+
+        [Option('u', "url", Required = false, HelpText = "Load test a HTTP GET request for the provided URL")]
+        public string Url { get; set; }
 
         // Provider info
         [Option('p', "provider", Required = false, HelpText = "Attestation provider DNS name")]
@@ -91,6 +92,7 @@ namespace maa.perf.test.core.Model
                     UsePreviewApi = this.UsePreviewApiVersion,
                     ServicePort = this.ServicePort,
                     UseHttp = this.UseHttp,
+                    Url = this.Url,
                     Weight = 100.0d,
                     Percentage = 1.0d
                 });
@@ -111,41 +113,54 @@ namespace maa.perf.test.core.Model
         public Options()
         {
             Verbose = false;
-            AttestationProvider = "shareduks.uks.attest.azure.net";
-            EnclaveInfoFile = "./Quotes/enclave.info.release.json";
+
+            MixFileName = null;
+
             SimultaneousConnections = 5;
             TargetRPS = 1;
             ForceReconnects = false;
+            RampUpTimeSeconds = 0;
+            TestTimeSeconds = int.MaxValue;
+            EnclaveInfoFile = "./Quotes/enclave.info.release.json";
+
+            RestApi = Api.None;
             UsePreviewApiVersion = false;
             ServicePort = "443";
             UseHttp = false;
-            TenantName = null;
-            RestApi = Api.None;
             Url = null;
-            RampUpTimeSeconds = 0;
+
+            AttestationProvider = "sharedcac.cac.attest.azure.net";
+            TenantName = null;
             ProviderCount = 1;
-            MixFileName = null;
-            TestTimeSeconds = int.MaxValue;
         }
 
         public void Trace()
         {
             Tracer.TraceInfo($"");
-            Tracer.TraceInfo($"Attestation Provider     : {AttestationProvider}");
-            Tracer.TraceInfo($"REST Api                 : {RestApi}");
-            Tracer.TraceInfo($"Test time in seconds     : {TestTimeSeconds}");
-            Tracer.TraceInfo($"ProviderCount            : {ProviderCount}");
             Tracer.TraceInfo($"Mix File Name            : {MixFileName}");
-            Tracer.TraceInfo($"Enclave Info File        : {EnclaveInfoFile}");
+
+            Tracer.TraceInfo($"");
+            Tracer.TraceInfo($"**** Orchestration info");
             Tracer.TraceInfo($"Simultaneous Connections : {SimultaneousConnections}");
             Tracer.TraceInfo($"Target RPS               : {TargetRPS}");
             Tracer.TraceInfo($"Force Reconnects         : {ForceReconnects}");
+            Tracer.TraceInfo($"RampUpTimeSeconds        : {RampUpTimeSeconds}");
+            Tracer.TraceInfo($"Test time in seconds     : {TestTimeSeconds}");
+            Tracer.TraceInfo($"Enclave Info File        : {EnclaveInfoFile}");
+
+            Tracer.TraceInfo($"");
+            Tracer.TraceInfo($"**** API info");
+            Tracer.TraceInfo($"REST Api                 : {RestApi}");
             Tracer.TraceInfo($"Use Preview API Version  : {UsePreviewApiVersion}");
             Tracer.TraceInfo($"Service port             : {ServicePort}");
-            Tracer.TraceInfo($"Tenant Name Override     : {TenantName}");
             Tracer.TraceInfo($"Use HTTP                 : {UseHttp}");
             Tracer.TraceInfo($"Url                      : {Url}");
-            Tracer.TraceInfo($"RampUpTimeSeconds        : {RampUpTimeSeconds}");
+
+            Tracer.TraceInfo($"");
+            Tracer.TraceInfo($"**** Provider info");
+            Tracer.TraceInfo($"Attestation Provider     : {AttestationProvider}");
+            Tracer.TraceInfo($"Tenant Name Override     : {TenantName}");
+            Tracer.TraceInfo($"ProviderCount            : {ProviderCount}");
             Tracer.TraceInfo($"");
         }
     }

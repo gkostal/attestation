@@ -2,7 +2,7 @@
   "profiles": {
     "maa.perf.test.core": {
       "commandName": "Project",
-      "commandLineArgs": "-x Mix.Nominal.json -c 10 -r 10 -i 10"
+      "commandLineArgs": "-u \"https://www.microsoft.com\" -c 1 -r 1 -i 2"
     }
   }
 }

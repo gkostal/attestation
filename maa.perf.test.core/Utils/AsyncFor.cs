@@ -110,22 +110,26 @@ namespace maa.perf.test.core.Utils
                     // Wait for start of next interval
                     await Task.Delay(GetMillisecondsToStartOfNextInterval());
 
-                    // Note info for current interval, resetting interval aggretation data members
-                    DateTime currentTimeSnapshot = DateTime.Now;
-                    var recentLatencyTimes = Interlocked.Exchange(ref _intervalLatencyTimes, new ConcurrentDictionary<int, int>());
-                    var recentTotalRequestCharge = Interlocked.Exchange(ref _totalRequestCharge, 0.0);
+                    // Don't send a notification if we've been terminated
+                    if (_enabled)
+                    {
+                        // Note info for current interval, resetting interval aggretation data members
+                        DateTime currentTimeSnapshot = DateTime.Now;
+                        var recentLatencyTimes = Interlocked.Exchange(ref _intervalLatencyTimes, new ConcurrentDictionary<int, int>());
+                        var recentTotalRequestCharge = Interlocked.Exchange(ref _totalRequestCharge, 0.0);
 
-                    // Calculate one second interval metrics
-                    IntervalMetrics m = InitPerSecondIntervalMetric(currentTimeSnapshot, currentTimeSnapshot - _lastReportTime, recentLatencyTimes, recentTotalRequestCharge);
-                    PopulateExtendedMetrics?.Invoke(m);
-                    PerSecondMetricsAvailable?.Invoke(m);
+                        // Calculate one second interval metrics
+                        IntervalMetrics m = InitPerSecondIntervalMetric(currentTimeSnapshot, currentTimeSnapshot - _lastReportTime, recentLatencyTimes, recentTotalRequestCharge);
+                        PopulateExtendedMetrics?.Invoke(m);
+                        PerSecondMetricsAvailable?.Invoke(m);
 
-                    // Update one minute interval metrics & post if needed
-                    UpdatePerMinuteIntervalMetrics(m);
+                        // Update one minute interval metrics & post if needed
+                        UpdatePerMinuteIntervalMetrics(m);
 
-                    // Remember this interval
-                    _lastReportTime = currentTimeSnapshot;
-                    await Task.Delay(10);  // Don't run too fast & report more than once per interval
+                        // Remember this interval
+                        _lastReportTime = currentTimeSnapshot;
+                        await Task.Delay(10);  // Don't run too fast & report more than once per interval
+                    }
                 }
                 catch (Exception x)
                 {

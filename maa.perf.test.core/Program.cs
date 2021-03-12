@@ -4,6 +4,7 @@ using maa.perf.test.core.Model;
 using maa.perf.test.core.Utils;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -132,10 +133,11 @@ namespace maa.perf.test.core
             if (string.IsNullOrEmpty(apiInfo.Url))
             {
                 var description = mixInfo.ProviderMix[0].DnsName;
+                var totalProviderCount = mixInfo.ProviderMix.Sum(p => p.ProviderCount);
 
-                if (mixInfo.ProviderMix.Count > 1)
+                if (totalProviderCount > 1)
                 {
-                    description = $"{description} + {mixInfo.ProviderMix.Count - 1} more";
+                    description = $"{description} + {totalProviderCount - 1} more";
                 }
 
                 return description;

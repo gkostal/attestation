@@ -9,7 +9,7 @@ namespace maa.perf.test.core.Model
     public class AttestationProvidersInfo : AttestationProviderInfo
     {
         const string TenantNameRegEx = @"(\D*)(\d*)";
-        const string ProviderDnsNameRegEx = @"(\D*)(\d*)\..*";
+        const string ProviderDnsNameRegEx = @"(\D*)(\d*)(\..*)";
 
         public AttestationProvidersInfo()
         {
@@ -25,10 +25,10 @@ namespace maa.perf.test.core.Model
 
             if (ProviderCount > 1)
             {
-                var (dnsNameBase, tenantNameBase) = ExtractBaseNames();
+                var (dnsNameBase, dnsSubDomain, tenantNameBase) = ExtractBaseNames();
                 for (int i = 0; i < ProviderCount; i++)
                 {
-                    providers.Add(CreateRangedProviderInfo(i, dnsNameBase, tenantNameBase));
+                    providers.Add(CreateRangedProviderInfo(i, dnsNameBase, dnsSubDomain, tenantNameBase));
                 }
             }
             else
@@ -43,9 +43,9 @@ namespace maa.perf.test.core.Model
             return providers;
         }
 
-        private AttestationProviderInfo CreateRangedProviderInfo(int index, string dnsNameBase, string tenantNameBase)
+        private AttestationProviderInfo CreateRangedProviderInfo(int index, string dnsNameBase, string dnsSubDomain, string tenantNameBase)
         {
-            var dnsName = string.IsNullOrEmpty(dnsNameBase) ? DnsName : $"{dnsNameBase}{index}";
+            var dnsName = string.IsNullOrEmpty(dnsNameBase) ? DnsName : $"{dnsNameBase}{index}{dnsSubDomain}";
             var tenantNameOverride = string.IsNullOrEmpty(tenantNameBase) ? TenantNameOverride : $"{tenantNameBase}{index}";
 
             return new AttestationProviderInfo()
@@ -55,15 +55,17 @@ namespace maa.perf.test.core.Model
             };
         }
 
-        private (string, string) ExtractBaseNames()
+        private (string, string, string) ExtractBaseNames()
         {
             var dnsNameBase = string.Empty;
+            var dnsSubDomain = string.Empty;
             var tenantNameOverrideBase = string.Empty;
 
             if (!this.DnsName.Equals("localhost", StringComparison.InvariantCultureIgnoreCase))
             {
                 var pre = Regex.Match(this.DnsName, ProviderDnsNameRegEx);
                 dnsNameBase = pre.Groups[1].Value;
+                dnsSubDomain = pre.Groups[3].Value;
             }
             if (!string.IsNullOrEmpty(this.TenantNameOverride))
             {
@@ -71,7 +73,7 @@ namespace maa.perf.test.core.Model
                 tenantNameOverrideBase = tre.Groups[1].Value;
             }
 
-            return (dnsNameBase, tenantNameOverrideBase);
+            return (dnsNameBase, dnsSubDomain, tenantNameOverrideBase);
         }
     }
 }

@@ -106,6 +106,7 @@ namespace maa.perf.test.core.Maa
             {
                 switch (_apiInfo.ApiName)
                 {
+                    // TODO: AttestSgx should not call OpenEnclave attest!
                     case Api.AttestOpenEnclave:
                         if (_apiInfo.UsePreviewApi)
                             return CallAttestSgxPreviewApiVersionAsync;

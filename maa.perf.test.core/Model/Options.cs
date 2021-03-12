@@ -3,8 +3,27 @@ using maa.perf.test.core.Utils;
 
 namespace maa.perf.test.core.Model
 {
+    //
+    // Program options.  Options can be specified two ways:
+    //   * via the the mixfile (one command line parameter)
+    //   * via command line parameters (numerous command line parameters)
+    //
+    // The set of options available via command line parameters is
+    // a subset of what's available via a mixfile.
+    //
     public class Options
     {
+        // ******************************************************************
+        // Option #1 - the mixfile
+        // ******************************************************************
+
+        [Option('x', "mixfile", Required = false, HelpText = "Mix file (JSON, defines mix of API calls)")]
+        public string MixFileName { get; set; }
+
+        // ******************************************************************
+        // Option #2 - command line parameters
+        // ******************************************************************
+
         // Global stuff
         [Option('c', "connections", Required = false, HelpText = "Number of simultaneous connections (and calls) to the MAA service")]
         public long SimultaneousConnections { get; set; }
@@ -15,26 +34,20 @@ namespace maa.perf.test.core.Model
         [Option('f', "forcereconnects", Required = false, HelpText = "Force reconnects on each request")]
         public bool ForceReconnects { get; set; }
 
-        [Option('q', "quote", Required = false, HelpText = "Enclave info file containing the SGX quote")]
-        public string EnclaveInfoFile { get; set; }
-
-        [Option('u', "url", Required = false, HelpText = "Load test a HTTP GET request for the provided URL")]
-        public string Url { get; set; }
-
         [Option('m', "rampuptime", Required = false, HelpText = "Ramp up time in seconds")]
         public int RampUpTimeSeconds { get; set; }
 
         [Option('i', "testtime", Required = false, HelpText = "Testing time in seconds")]
         public int TestTimeSeconds { get; set; }
 
+        [Option('q', "quote", Required = false, HelpText = "Enclave info file containing the SGX quote")]
+        public string EnclaveInfoFile { get; set; }
+
+        [Option('u', "url", Required = false, HelpText = "Load test a HTTP GET request for the provided URL")]
+        public string Url { get; set; }
+
         [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages")]
         public bool Verbose { get; set; }
-
-        // Either MIXFILE
-        [Option('x', "mixfile", Required = false, HelpText = "Mix file (JSON, defines mix of API calls)")]
-        public string MixFileName { get; set; }
-
-        // Or the following
 
         // API info
         [Option('a', "api", Required = false, HelpText = "REST Api to test: {AttestSgx, AttestOpenEnclave, GetOpenIdConfiguration, GetCerts, GetServiceHealth}")]

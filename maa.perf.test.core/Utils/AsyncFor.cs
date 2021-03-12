@@ -32,18 +32,19 @@ namespace maa.perf.test.core.Utils
         public event IntervalMetricsNotification PerMinuteMetricsAvailable;
         public event IntervalMetricsNotification PerSecondMetricsAvailable;
 
-        public AsyncFor(Func<double> getTps, string resourceDescription)
+        public AsyncFor(Func<double> getTps, string resourceDescription, string testDescription)
         {
             _getTps = getTps;
             _resourceDescription = resourceDescription;
+            _testDescription = testDescription;
             _currentCount = 0;
             _timer = new Stopwatch();
             _throttlingCurrentCount = 0;
             _throttlingTimer = new Stopwatch();
         }
 
-        public AsyncFor(double maxTPS, string resourceDescription)
-            : this(() => maxTPS, resourceDescription)
+        public AsyncFor(double maxTPS, string resourceDescription, string testDescription)
+            : this(() => maxTPS, resourceDescription, testDescription)
         {
         }
 
@@ -62,7 +63,7 @@ namespace maa.perf.test.core.Utils
             _timer.Start();
             _throttlingTimer.Start();
             _enabled = true;
-            _methodName = asyncWorkerFunction.Method.Name;
+            _testDescription ??= asyncWorkerFunction.Method.Name;
 
             List<Task> tasks = new List<Task>();
             for (long i = 0; i < maxSimultanousAwaits; i++)
@@ -109,22 +110,26 @@ namespace maa.perf.test.core.Utils
                     // Wait for start of next interval
                     await Task.Delay(GetMillisecondsToStartOfNextInterval());
 
-                    // Note info for current interval, resetting interval aggretation data members
-                    DateTime currentTimeSnapshot = DateTime.Now;
-                    var recentLatencyTimes = Interlocked.Exchange(ref _intervalLatencyTimes, new ConcurrentDictionary<int, int>());
-                    var recentTotalRequestCharge = Interlocked.Exchange(ref _totalRequestCharge, 0.0);
+                    // Don't send a notification if we've been terminated
+                    if (_enabled)
+                    {
+                        // Note info for current interval, resetting interval aggretation data members
+                        DateTime currentTimeSnapshot = DateTime.Now;
+                        var recentLatencyTimes = Interlocked.Exchange(ref _intervalLatencyTimes, new ConcurrentDictionary<int, int>());
+                        var recentTotalRequestCharge = Interlocked.Exchange(ref _totalRequestCharge, 0.0);
 
-                    // Calculate one second interval metrics
-                    IntervalMetrics m = InitPerSecondIntervalMetric(currentTimeSnapshot, currentTimeSnapshot - _lastReportTime, recentLatencyTimes, recentTotalRequestCharge);
-                    PopulateExtendedMetrics?.Invoke(m);
-                    PerSecondMetricsAvailable?.Invoke(m);
+                        // Calculate one second interval metrics
+                        IntervalMetrics m = InitPerSecondIntervalMetric(currentTimeSnapshot, currentTimeSnapshot - _lastReportTime, recentLatencyTimes, recentTotalRequestCharge);
+                        PopulateExtendedMetrics?.Invoke(m);
+                        PerSecondMetricsAvailable?.Invoke(m);
 
-                    // Update one minute interval metrics & post if needed
-                    UpdatePerMinuteIntervalMetrics(m);
+                        // Update one minute interval metrics & post if needed
+                        UpdatePerMinuteIntervalMetrics(m);
 
-                    // Remember this interval
-                    _lastReportTime = currentTimeSnapshot;
-                    await Task.Delay(10);  // Don't run too fast & report more than once per interval
+                        // Remember this interval
+                        _lastReportTime = currentTimeSnapshot;
+                        await Task.Delay(10);  // Don't run too fast & report more than once per interval
+                    }
                 }
                 catch (Exception x)
                 {
@@ -169,7 +174,7 @@ namespace maa.perf.test.core.Utils
             (
                 currentTimeSnapshot.Truncate(TimeSpan.FromSeconds(1)),    // Truncate to current second
                 duration,
-                _methodName,
+                _testDescription,
                 Environment.MachineName,
                 Process.GetCurrentProcess().Id,
                 _resourceDescription,
@@ -219,7 +224,7 @@ namespace maa.perf.test.core.Utils
                 // *******************************
                 // Slow down if needed
                 // *******************************
-                if (_enabled)
+                if (shouldContinue() && _enabled)
                 {
                     if ((_getTps() > 0) && (_throttlingTimer.Elapsed.Milliseconds > 0))
                     {
@@ -228,11 +233,11 @@ namespace maa.perf.test.core.Utils
                         long delayMilliseconds = (long)(minMilliseconds - (double)_throttlingTimer.Elapsed.TotalMilliseconds);
 
                         // Delay if running too fast
-                        while (delayMilliseconds > 0 && _enabled)
+                        while (delayMilliseconds > 0 && _enabled && shouldContinue())
                         {
-                            // Delay with a bit of jitter
+                            // Delay with a bit of jitter and no longer than 100ms (so that we exit gracefully at the stop time if set)
                             int currentDelay = (int)(delayMilliseconds) + _rnd.Next(0, 25);
-                            await Task.Delay(currentDelay);
+                            await Task.Delay(Math.Min(currentDelay, 100));
 
                             // Determine if we still need to delay
                             minMilliseconds = ((double)_throttlingCurrentCount / (double)_getTps()) * 1000.0;
@@ -283,7 +288,7 @@ namespace maa.perf.test.core.Utils
         // Global static state
         private bool _enabled = false;
         private long _currentCount;
-        private string _methodName;
+        private string _testDescription;
         private string _resourceDescription;
 
         // Throttling state - periodically resets to avoid long running "catch up" work

@@ -30,12 +30,8 @@ namespace maa.perf.test.core.Utils
             lock (_lock)
             {
                 _fileWriter.WriteLine(csvLine);
-                if ((DateTime.Now - _lastFileFlush) > TimeSpan.FromSeconds(5))
-                {
-                    _fileWriter.Close();
-                    _fileWriter = File.AppendText(_filePath);
-                    _lastFileFlush = DateTime.Now;
-                }
+                _fileWriter.Close();
+                _fileWriter = File.AppendText(_filePath);
             }
         }
 
@@ -48,7 +44,7 @@ namespace maa.perf.test.core.Utils
                     if (null == _fileWriter)
                     {
                         DateTime startTime = DateTime.Now;
-                        _filePath = string.Format("{0}-{1}-{2}-{3}-{4}-{5}-{6}-{7}.csv",
+                        _filePath = string.Format("{0}-{1}-{2}-{3}-{4}-{5}-{6}-{7}-{8}.csv",
                             Environment.MachineName,
                             metrics.ProcessId,
                             startTime.Year,
@@ -56,7 +52,8 @@ namespace maa.perf.test.core.Utils
                             startTime.Day,
                             startTime.Hour,
                             startTime.Minute,
-                            startTime.Second);
+                            startTime.Second,
+                            metrics.TestDescription);
                         _fileWriter = File.AppendText(_filePath);
 
                         _fileWriter.WriteLine("\"ResourceDescription\",\"TestDescription\",\"IntervalTime\",\"Count\",\"RPS\",\"AverageLatency\",\"P50\",\"P90\",\"P95\",\"P99\",\"P99.5\",\"P99.9\"");
@@ -65,9 +62,8 @@ namespace maa.perf.test.core.Utils
             }
         }
 
-        private static readonly object _lock = new object();
-        private static string _filePath = null;
-        private static StreamWriter _fileWriter = null;
-        private static DateTime _lastFileFlush = DateTime.MinValue;
+        private readonly object _lock = new object();
+        private string _filePath = null;
+        private StreamWriter _fileWriter = null;
     }
 }

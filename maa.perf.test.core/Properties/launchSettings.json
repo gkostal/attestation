@@ -2,7 +2,7 @@
   "profiles": {
     "maa.perf.test.core": {
       "commandName": "Project",
-      "commandLineArgs": "-p shareduks.uks.attest.azure.net -c 11 -r 15  -x Mix.Nominal.json"
+      "commandLineArgs": "-x c:\\tmp\\mix\\Mix.Perf.Prod.json"
     }
   }
 }

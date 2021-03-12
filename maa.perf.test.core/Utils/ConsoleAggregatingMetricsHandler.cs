@@ -3,14 +3,15 @@ using System.Collections.Generic;
 
 namespace maa.perf.test.core.Utils
 {
-    class ConsoleAggregattingMetricsHandler
+    class ConsoleAggregatingMetricsHandler
     {
-        private int _lookbackSeconds;
-        private List<IntervalMetrics> _lookbackData = new List<IntervalMetrics>();
-        private int _simultaneousCount;
         static private List<string> _bufferedOutput = new List<string>();
 
-        public ConsoleAggregattingMetricsHandler(int simultaneousCount, int lookbackSeconds = 15)
+        private int _lookbackSeconds;
+        private int _simultaneousCount;
+        private List<IntervalMetrics> _lookbackData = new List<IntervalMetrics>();
+
+        public ConsoleAggregatingMetricsHandler(int simultaneousCount, int lookbackSeconds = 60)
         {
             _simultaneousCount = simultaneousCount;
             _lookbackSeconds = lookbackSeconds;
@@ -40,7 +41,7 @@ namespace maa.perf.test.core.Utils
             List<string> messagesToFlush = null;
 
             var line = string.Format(
-                "Resource: {0}  , Test: {1,-36}  , Time: {2,-22}, RPS: {3,7:f2}, Average:{4,5}, P50:{5,5}, P90:{6,5}, P95:{7,5}, P99:{8,5}",
+                "Resource: {0, -23}  , Test: {1,-25}  , Time: {2,-22}, RPS: {3,7:f2}, Average:{4,5}, P50:{5,5}, P90:{6,5}, P95:{7,5}, P99:{8,5}",
                 metrics.ResourceDescription, // 0
                 metrics.TestDescription,     // 1
                 metrics.EndTime.ToString(),  // 2

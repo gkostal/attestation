@@ -1,19 +1,25 @@
 ﻿using CommandLine;
+using maa.perf.test.core.Maa;
+using maa.perf.test.core.Model;
 using maa.perf.test.core.Utils;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
+// TODO: 
+//   * Let .NET FX control also control max connections
+//         * So 4 tests might each try to use 10 connections, but the .NET FX might limit the total to 10
+//         * This way fast tests (e.g. get open id metadata) will allow other tests to use some of their connection quota
 namespace maa.perf.test.core
 {
     public class Program
     {
         private Options _options;
-        private MixFile _mixFileContents;
-        private Maa.EnclaveInfo _enclaveInfo;
-        private Maa.MaaService _maaService;
-        private Random _rnd = new Random();
+        private MixInfo _mixInfo;
+        private List<AsyncFor> _asyncForInstances = new List<AsyncFor>();
+        private bool _terminate = false;
 
         public static void Main(string[] args)
         {
@@ -35,167 +41,135 @@ namespace maa.perf.test.core
             }
 
             Tracer.CurrentTracingLevel = _options.Verbose ? TracingLevel.Verbose : TracingLevel.Info;
-            _enclaveInfo = Maa.EnclaveInfo.CreateFromFile(_options.EnclaveInfoFile);
-            _maaService = new Maa.MaaService(_options);
-
-            _options.Trace();
         }
 
         public async Task RunAsync()
         {
-            // Handle ramp up if defined
-            if (_options.RampUp > 4)
+            // Complete all HTTP conversations before exiting application
+            Console.CancelKeyPress += HandleControlC;
+
+            // Retrieve all run configuration settings
+            _mixInfo = _options.GetMixInfo();
+            _mixInfo.Trace();
+
+            using (var uberCsvAggregator = new CsvAggregatingMetricsHandler())
             {
-                DateTime startTime = DateTime.Now;
-                DateTime endTime = startTime + TimeSpan.FromSeconds(_options.RampUp);
-                int numberIntervals = Math.Min(_options.RampUp / 5, 6);
-                TimeSpan intervalLength = (endTime - startTime) / numberIntervals;
-                double intervalRpsDelta = ((double)_options.TargetRPS) / ((double)numberIntervals);
-                for (int i = 0; i < numberIntervals; i++)
+                for (int i = 0; i < _mixInfo.TestRuns.Count && !_terminate; i++)
                 {
+                    var testRunInfo = _mixInfo.TestRuns[i];
+                    var asyncRunners = new List<Task>();
+
+                    uberCsvAggregator.SetRpsAndConnections(testRunInfo.TargetRPS, testRunInfo.SimultaneousConnections);
+
+                    Tracer.TraceInfo("");
+                    Tracer.TraceInfo($"Starting test run #{i}   RPS: {testRunInfo.TargetRPS}  Connections: {testRunInfo.SimultaneousConnections}");
+
+                    // Handle ramp up if needed
+                    await RampUpAsync(testRunInfo);
+
+                    // Initiate separate asyncfor for each API in the mix
+                    if (!_terminate)
+                    {
+                        foreach (var apiInfo in _mixInfo.ApiMix)
+                        {
+                            var myFor = new AsyncFor(testRunInfo.TargetRPS * apiInfo.Percentage, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo));
+                            if (_mixInfo.ApiMix.Count > 1)
+                            {
+                                myFor.PerSecondMetricsAvailable += new ConsoleAggregatingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
+                            }
+                            else
+                            {
+                                myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
+                                myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
+                            }
+
+                            if (testRunInfo.TestTimeSeconds != int.MaxValue)
+                            {
+                                myFor.PerSecondMetricsAvailable += uberCsvAggregator.MetricsAvailableHandler;
+                            }
+
+                            _asyncForInstances.Add(myFor);
+                            asyncRunners.Add(myFor.For(TimeSpan.FromSeconds(testRunInfo.TestTimeSeconds), testRunInfo.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects).CallApi));
+                        }
+                    }
+
+                    // Wait for all to be complete (happens when crtl-c is hit)
+                    await Task.WhenAll(asyncRunners.ToArray());
+
+                    Tracer.TraceInfo("");
+                    Tracer.TraceInfo($"Completed test run #{i}   RPS: {testRunInfo.TargetRPS}  Connections: {testRunInfo.SimultaneousConnections}");
+                }
+            }
+            Tracer.TraceInfo($"Organized shutdown complete.");
+        }
+
+        private async Task RampUpAsync(TestRunInfo testRunInfo)
+        {
+            // Handle ramp up if defined
+            if (testRunInfo.RampUpTimeSeconds > 4 && !_terminate)
+            {
+                Tracer.TraceInfo($"Ramping up starts.");
+
+                DateTime startTime = DateTime.Now;
+                DateTime endTime = startTime + TimeSpan.FromSeconds(testRunInfo.RampUpTimeSeconds);
+                int numberIntervals = Math.Min(testRunInfo.RampUpTimeSeconds / 5, 6);
+                TimeSpan intervalLength = (endTime - startTime) / numberIntervals;
+                double intervalRpsDelta = ((double)testRunInfo.TargetRPS) / ((double)numberIntervals);
+                for (int i = 0; i < numberIntervals && !_terminate; i++)
+                {
+                    var apiInfo = _mixInfo.ApiMix[i % _mixInfo.ApiMix.Count];
+
                     long intervalRps = (long)Math.Round((i + 1) * intervalRpsDelta);
                     Tracer.TraceInfo($"Ramping up. RPS = {intervalRps}");
-                    AsyncFor myRampUpFor = new AsyncFor(intervalRps, _options.AttestationProvider);
+
+                    AsyncFor myRampUpFor = new AsyncFor(intervalRps, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo));
                     myRampUpFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
-                    await myRampUpFor.For(intervalLength, _options.SimultaneousConnections, GetRestApiCallback());
+                    _asyncForInstances.Add(myRampUpFor);
+
+                    await myRampUpFor.For(intervalLength, testRunInfo.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects).CallApi);
                 }
+                Tracer.TraceInfo($"Ramping up complete.");
             }
+        }
 
-            // Are we in mix mode?
-            if (_options.RestApi == Api.None)
+        private string GetResourceDescription(ApiInfo apiInfo, MixInfo mixInfo)
+        {
+            if (string.IsNullOrEmpty(apiInfo.Url))
             {
-                List<Task> asyncRunners = new List<Task>();
+                var description = mixInfo.ProviderMix[0].DnsName;
+                var totalProviderCount = mixInfo.ProviderMix.Sum(p => p.ProviderCount);
 
-                _mixFileContents = _options.GetMixFileContents();
-                foreach (var a in _mixFileContents.ApiMix)
+                if (totalProviderCount > 1)
                 {
-                    var rps = _options.TargetRPS * a.Percentage;
-
-                    Tracer.TraceInfo($"Running {a.ApiName} at RPS = {rps}");
-                    AsyncFor myFor = new AsyncFor(rps, _options.AttestationProvider);
-                    myFor.PerSecondMetricsAvailable += new ConsoleAggregattingMetricsHandler(_mixFileContents.ApiMix.Count, 60).MetricsAvailableHandler;
-                    //myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
-
-                    asyncRunners.Add(myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, GetCallback(a.ApiName)));
+                    description = $"{description} + {totalProviderCount - 1} more";
                 }
 
-                Task.WaitAll(asyncRunners.ToArray());
+                return description;
             }
             else
             {
-                Tracer.TraceInfo($"Running at RPS = {_options.TargetRPS}");
-                AsyncFor myFor = new AsyncFor(_options.TargetRPS, _options.AttestationProvider);
-                myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
-                myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
-                await myFor.For(TimeSpan.MaxValue, _options.SimultaneousConnections, GetRestApiCallback());
+                return apiInfo.Url;
             }
-
         }
 
-        public async Task<double> CallAttestSgxPreviewApiVersionAsync()
+        private string GetTestDescription(ApiInfo apiInfo)
         {
-            return await WrapServiceCallAsync(async () => await _maaService.AttestOpenEnclaveAsync(new Maa.Preview.AttestOpenEnclaveRequestBody(_enclaveInfo)));
+            return string.IsNullOrEmpty(apiInfo.Url) ? apiInfo.ApiName.ToString() : "GetUrl";
         }
 
-        public async Task<double> CallAttestSgxGaApiVersionAsync()
+        private void HandleControlC(object sender, ConsoleCancelEventArgs e)
         {
-            return await WrapServiceCallAsync(async () => await _maaService.AttestOpenEnclaveAsync(new Maa.Ga.AttestOpenEnclaveRequestBody(_enclaveInfo)));
-        }
+            Tracer.TraceInfo($"Organized shutdown starting.  Informing {_asyncForInstances.Count} asyncfor instances to terminate.\n");
 
-        public async Task<double> GetCertsAsync()
-        {
-            return await WrapServiceCallAsync(async () => await _maaService.GetCertsAsync());
-        }
+            // Do NOT stop running application yet
+            _terminate = true;
+            e.Cancel = true;
 
-        public async Task<double> GetOpenIdConfigurationAsync()
-        {
-            return await WrapServiceCallAsync(async () => await _maaService.GetOpenIdConfigurationAsync());
-        }
-
-        public async Task<double> GetServiceHealthAsync()
-        {
-            return await WrapServiceCallAsync(async () => await _maaService.GetServiceHealthAsync());
-        }
-
-        public async Task<double> GetUrlAsync()
-        {
-            return await WrapServiceCallAsync(async () => await _maaService.GetUrlAsync(_options.Url));
-        }
-
-        private async Task<double> WrapServiceCallAsync(Func<Task<string>> callServiceAsync)
-        {
-            try
+            // Tell all asyncfor instances to stop
+            foreach (var af in _asyncForInstances)
             {
-                await callServiceAsync();
-            }
-            catch (Exception x)
-            {
-                Tracer.TraceError($"Exception caught: {x.ToString()}");
-            }
-
-            return await Task.FromResult(0.0);
-        }
-
-        public async Task<double> CallMixApiSet()
-        {
-            var sampleValue = _rnd.NextDouble();
-            var currentSum = 0.0d;
-
-            foreach (var a in _mixFileContents.ApiMix)
-            {
-                if (sampleValue < currentSum + a.Percentage)
-                {
-                    return await GetCallback(a.ApiName)();
-                }
-                currentSum += a.Percentage;
-            }
-
-            // Make sure rounding error doesn't fall through without calling an API
-            return await GetCallback(_mixFileContents.ApiMix[_mixFileContents.ApiMix.Count - 1].ApiName)();
-        }
-
-        private Func<Task<double>> GetCallback(Api theApi)
-        {
-            switch (theApi)
-            {
-                case Api.AttestOpenEnclave:
-                    if (_options.UsePreviewApiVersion)
-                        return CallAttestSgxPreviewApiVersionAsync;
-                    else
-                        return CallAttestSgxGaApiVersionAsync;
-                case Api.AttestSgx:
-                    return CallAttestSgxGaApiVersionAsync;
-                case Api.GetCerts:
-                    return GetCertsAsync;
-                case Api.GetOpenIdConfiguration:
-                    return GetOpenIdConfigurationAsync;
-                case Api.GetServiceHealth:
-                    return GetServiceHealthAsync;
-                default:
-                    return CallAttestSgxGaApiVersionAsync;
+                af.Terminate();
             }
         }
-
-        private Func<Task<double>> GetRestApiCallback()
-        {
-            if (!string.IsNullOrEmpty(_options.Url))
-            {
-                return GetUrlAsync;
-            }
-            else
-            {
-                if (_options.RestApi == Api.None)
-                {
-                    // Make sure we can access the mix file contents now, before we start
-                    _mixFileContents = _options.GetMixFileContents();
-                    return CallMixApiSet;
-                }
-                else
-                {
-                    return GetCallback(_options.RestApi);
-                }
-            }
-        }
-
     }
 }

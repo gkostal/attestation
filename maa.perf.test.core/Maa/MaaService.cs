@@ -1,4 +1,5 @@
 ﻿using maa.perf.test.core.Authentication;
+using maa.perf.test.core.Model;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,24 @@ namespace maa.perf.test.core.Maa
     /// </summary>
     public class MaaService
     {
+        public class MaaResponse
+        {
+            public string Body { get; }
+            public PerformanceInformation PerfInfo { get; }
+
+            public MaaResponse()
+            {
+                Body = string.Empty;
+                PerfInfo = new PerformanceInformation();
+            }
+
+            public MaaResponse(string body, PerformanceInformation perfInfo)
+            {
+                Body = body;
+                PerfInfo = perfInfo;
+            }
+        }
+
         private const string TenantNameHeder = "tenantName";
         private static HttpClient theHttpClient;
         private MaaConnectionInfo _connectionInfo;
@@ -45,43 +64,43 @@ namespace maa.perf.test.core.Maa
 
         }
 
-        public async Task<string> AttestOpenEnclaveAsync(Preview.AttestOpenEnclaveRequestBody requestBody)
+        public async Task<MaaResponse> AttestOpenEnclaveAsync(Preview.AttestOpenEnclaveRequestBody requestBody)
         {
             return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/Tee/OpenEnclave?api-version=2018-09-01-preview", requestBody);
         }
 
         //2020-10-01
-        public async Task<string> AttestOpenEnclaveAsync(Ga.AttestOpenEnclaveRequestBody requestBody)
+        public async Task<MaaResponse> AttestOpenEnclaveAsync(Ga.AttestOpenEnclaveRequestBody requestBody)
         {
             return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
         }
 
-        public async Task<string> AttestSgxEnclaveAsync(Ga.AttestSgxEnclaveRequestBody requestBody)
+        public async Task<MaaResponse> AttestSgxEnclaveAsync(Ga.AttestSgxEnclaveRequestBody requestBody)
         {
             return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/SgxEnclave?api-version=2020-10-01", requestBody);
         }
 
-        public async Task<string> GetOpenIdConfigurationAsync()
+        public async Task<MaaResponse> GetOpenIdConfigurationAsync()
         {
             return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/.well-known/openid-configuration?api-version=2020-10-01");
         }
 
-        public async Task<string> GetCertsAsync()
+        public async Task<MaaResponse> GetCertsAsync()
         {
             return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/certs?api-version=2020-10-01");
         }
 
-        public async Task<string> GetServiceHealthAsync()
+        public async Task<MaaResponse> GetServiceHealthAsync()
         {
             return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/servicehealth?api-version=2020-10-01");
         }
 
-        public async Task<string> GetUrlAsync(string url)
+        public async Task<MaaResponse> GetUrlAsync(string url)
         {
             return await DoGetAsync(url);
         }
 
-        private async Task<string> DoGetAsync(string uri, [CallerMemberName] string caller = null)
+        private async Task<MaaResponse> DoGetAsync(string uri, [CallerMemberName] string caller = null)
         {
             // Build request
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
@@ -98,15 +117,17 @@ namespace maa.perf.test.core.Maa
             // Analyze failures
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
-                var body = await response.Content.ReadAsStringAsync();
-                throw new Exception($"{caller}: MAA service status code {(int)response.StatusCode}.  Details: '{body}'");
+                var errorBody = await response.Content.ReadAsStringAsync();
+                throw new Exception($"{caller}: MAA service status code {(int)response.StatusCode}.  Details: '{errorBody}'");
             }
 
             // Return result
-            return await response.Content.ReadAsStringAsync();
+            var body = await response.Content.ReadAsStringAsync();
+            var perfInfo = ParsePerformanceResponseHeader(response);
+            return new MaaResponse(body, perfInfo);
         }
 
-        private async Task<string> DoPostAsync(string uri, object bodyObject)
+        private async Task<MaaResponse> DoPostAsync(string uri, object bodyObject)
         {
             // Build request
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
@@ -124,12 +145,28 @@ namespace maa.perf.test.core.Maa
             // Analyze failures
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
-                var body = await response.Content.ReadAsStringAsync();
-                throw new Exception($"AttestOpenEnclaveAsync: MAA service status code {(int)response.StatusCode}.  Details: '{body}'");
+                var errorBody = await response.Content.ReadAsStringAsync();
+                throw new Exception($"AttestOpenEnclaveAsync: MAA service status code {(int)response.StatusCode}.  Details: '{errorBody}'");
             }
 
             // Return result
-            return (await response.Content.ReadAsStringAsync()).Trim('"');
+            var body = (await response.Content.ReadAsStringAsync()).Trim('"');
+            var perfInfo = ParsePerformanceResponseHeader(response);
+            return new MaaResponse(body, perfInfo);
         }
+        private PerformanceInformation ParsePerformanceResponseHeader(HttpResponseMessage response)
+        {
+            var perfInfo =  new PerformanceInformation();
+
+            if (response.Headers.TryGetValues("x-ms-maa-perf-info", out var values))
+            {
+                var iterator = values.GetEnumerator();
+                iterator.MoveNext();
+                perfInfo = PerformanceInformation.CreateFromHeaderString(iterator.Current);
+            }
+
+            return perfInfo;
+        }
+
     }
 }

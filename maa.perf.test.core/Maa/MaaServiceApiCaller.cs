@@ -21,7 +21,7 @@ namespace maa.perf.test.core.Maa
             _forceReconnects = forceReconnects;
         }
 
-        public Task<double> CallApi()
+        public async Task<double> CallApi()
         {
             MaaConnectionInfo maaConnectionInfo = null;
 
@@ -53,59 +53,61 @@ namespace maa.perf.test.core.Maa
             }
 
             var maaService = new MaaService(maaConnectionInfo);
-            return GetCallback().Invoke(maaService);
+            var result = await GetCallback().Invoke(maaService);
+            return result.PerfInfo.Cpu.Total;
         }
 
-        private async Task<double> CallAttestOpenEnclavePreviewAsync(MaaService maaService)
+        private async Task<MaaService.MaaResponse> CallAttestOpenEnclavePreviewAsync(MaaService maaService)
         {
             return await WrapServiceCallAsync(async () => await maaService.AttestOpenEnclaveAsync(new Maa.Preview.AttestOpenEnclaveRequestBody(_enclaveInfo)));
         }
 
-        private async Task<double> CallAttestOpenEnclaveGaAsync(MaaService maaService)
+        private async Task<MaaService.MaaResponse> CallAttestOpenEnclaveGaAsync(MaaService maaService)
         {
             return await WrapServiceCallAsync(async () => await maaService.AttestOpenEnclaveAsync(new Maa.Ga.AttestOpenEnclaveRequestBody(_enclaveInfo)));
         }
 
-        private async Task<double> CallAttestSgxEnclaveGaAsync(MaaService maaService)
+        private async Task<MaaService.MaaResponse> CallAttestSgxEnclaveGaAsync(MaaService maaService)
         {
             return await WrapServiceCallAsync(async () => await maaService.AttestSgxEnclaveAsync(new Maa.Ga.AttestSgxEnclaveRequestBody(_enclaveInfo)));
         }
 
-        private async Task<double> GetCertsAsync(MaaService maaService)
+        private async Task<MaaService.MaaResponse> GetCertsAsync(MaaService maaService)
         {
             return await WrapServiceCallAsync(async () => await maaService.GetCertsAsync());
         }
 
-        private async Task<double> GetOpenIdConfigurationAsync(MaaService maaService)
+        private async Task<MaaService.MaaResponse> GetOpenIdConfigurationAsync(MaaService maaService)
         {
             return await WrapServiceCallAsync(async () => await maaService.GetOpenIdConfigurationAsync());
         }
 
-        private async Task<double> GetServiceHealthAsync(MaaService maaService)
+        private async Task<MaaService.MaaResponse> GetServiceHealthAsync(MaaService maaService)
         {
             return await WrapServiceCallAsync(async () => await maaService.GetServiceHealthAsync());
         }
 
-        private async Task<double> GetUrlAsync(MaaService maaService)
+        private async Task<MaaService.MaaResponse> GetUrlAsync(MaaService maaService)
         {
             return await WrapServiceCallAsync(async () => await maaService.GetUrlAsync(_apiInfo.Url));
         }
 
-        private async Task<double> WrapServiceCallAsync(Func<Task<string>> callServiceAsync)
+        private async Task<MaaService.MaaResponse> WrapServiceCallAsync(Func<Task<MaaService.MaaResponse>> callServiceAsync)
         {
             try
             {
-                await callServiceAsync();
+                var result = await callServiceAsync();
+                return result;
             }
             catch (Exception x)
             {
                 Tracer.TraceError($"Exception caught: {x.ToString()}");
             }
 
-            return await Task.FromResult(0.0);
+            return await Task.FromResult(new MaaService.MaaResponse());
         }
 
-        private Func<MaaService, Task<double>> GetCallback()
+        private Func<MaaService, Task<MaaService.MaaResponse>> GetCallback()
         {
             if (string.IsNullOrEmpty(_apiInfo.Url))
             {

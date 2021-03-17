@@ -116,10 +116,10 @@ namespace maa.perf.test.core.Utils
                         // Note info for current interval, resetting interval aggretation data members
                         DateTime currentTimeSnapshot = DateTime.Now;
                         var recentLatencyTimes = Interlocked.Exchange(ref _intervalLatencyTimes, new ConcurrentDictionary<int, int>());
-                        var recentTotalRequestCharge = Interlocked.Exchange(ref _totalRequestCharge, 0.0);
+                        var recentCpuPercentageReported = Interlocked.Exchange(ref _totalCpuPercentageReported, 0.0);
 
                         // Calculate one second interval metrics
-                        IntervalMetrics m = InitPerSecondIntervalMetric(currentTimeSnapshot, currentTimeSnapshot - _lastReportTime, recentLatencyTimes, recentTotalRequestCharge);
+                        IntervalMetrics m = InitPerSecondIntervalMetric(currentTimeSnapshot, currentTimeSnapshot - _lastReportTime, recentLatencyTimes, recentCpuPercentageReported);
                         PopulateExtendedMetrics?.Invoke(m);
                         PerSecondMetricsAvailable?.Invoke(m);
 
@@ -168,7 +168,7 @@ namespace maa.perf.test.core.Utils
             );
         }
 
-        private IntervalMetrics InitPerSecondIntervalMetric(DateTime currentTimeSnapshot, TimeSpan duration, ConcurrentDictionary<int, int> recentLatencyTimes, double recentTotalRequestCharge)
+        private IntervalMetrics InitPerSecondIntervalMetric(DateTime currentTimeSnapshot, TimeSpan duration, ConcurrentDictionary<int, int> recentLatencyTimes, double recentCpuPercentageReported)
         {
             return new IntervalMetrics
             (
@@ -178,7 +178,8 @@ namespace maa.perf.test.core.Utils
                 Environment.MachineName,
                 Process.GetCurrentProcess().Id,
                 _resourceDescription,
-                recentLatencyTimes
+                recentLatencyTimes,
+                recentCpuPercentageReported
             );
         }
 
@@ -214,7 +215,7 @@ namespace maa.perf.test.core.Utils
                 // *******************************
                 // Record request charge
                 // *******************************
-                AddToDoubleThreadSafe(requestCharge, ref _totalRequestCharge);
+                AddToDoubleThreadSafe(requestCharge, ref _totalCpuPercentageReported);
 
                 // *******************************
                 // Record latency time
@@ -303,7 +304,7 @@ namespace maa.perf.test.core.Utils
         // Interval state
         private DateTime _lastReportTime = DateTime.Now;
         private ConcurrentDictionary<int, int> _intervalLatencyTimes = new ConcurrentDictionary<int, int>();
-        private double _totalRequestCharge = 0.0;
+        private double _totalCpuPercentageReported = 0.0;
         private IntervalMetrics _perMinuteMetrics = null;
 
         #endregion

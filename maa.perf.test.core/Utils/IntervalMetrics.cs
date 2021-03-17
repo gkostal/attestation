@@ -32,11 +32,16 @@ namespace maa.perf.test.core.Utils
         public int Percentile995 { get; private set; }
         public int Percentile999 { get; private set; }
 
+        // Calculated attribute from TotalCpuPercentageReported
+        public double CpuPercentage { get; private set; }
+
         // NON seriliazed attributes
         [JsonIgnore]
         public ConcurrentDictionary<int, int> LatencyDistributionMS { get; private set; } = new ConcurrentDictionary<int, int>();
+        [JsonIgnore]
+        public double TotalCpuPercentageReported;
 
-        public IntervalMetrics(DateTime endTime, TimeSpan duration, string testDescription, string machineName, int processId, string resourceDescription, ConcurrentDictionary<int, int> latencyDistributionMS)
+        public IntervalMetrics(DateTime endTime, TimeSpan duration, string testDescription, string machineName, int processId, string resourceDescription, ConcurrentDictionary<int, int> latencyDistributionMS, double totalCpuPercentageReported)
         {
             EndTime = endTime;
             Duration = duration;
@@ -44,6 +49,7 @@ namespace maa.perf.test.core.Utils
             MachineName = machineName;
             ProcessId = processId;
             ResourceDescription = resourceDescription;
+            TotalCpuPercentageReported = totalCpuPercentageReported;
 
             foreach (var latencyTime in latencyDistributionMS.Keys)
             {
@@ -55,7 +61,7 @@ namespace maa.perf.test.core.Utils
         }
 
         public IntervalMetrics(IntervalMetrics other, DateTime endTime, TimeSpan duration)
-            : this(endTime, duration, other.TestDescription, other.MachineName, other.ProcessId, other.ResourceDescription, other.LatencyDistributionMS)
+            : this(endTime, duration, other.TestDescription, other.MachineName, other.ProcessId, other.ResourceDescription, other.LatencyDistributionMS, other.TotalCpuPercentageReported)
         {
         }
 
@@ -67,6 +73,9 @@ namespace maa.perf.test.core.Utils
                 int otherValue = other.LatencyDistributionMS[latencyTime];
                 LatencyDistributionMS.AddOrUpdate(latencyTime, otherValue, (key, currentValue) => currentValue + otherValue);
             }
+
+            // Aggregate total CPU percentage reported
+            TotalCpuPercentageReported += other.TotalCpuPercentageReported;
 
             // Recompute other values
             ComputeCalculatedAttributes();
@@ -85,6 +94,7 @@ namespace maa.perf.test.core.Utils
 
             double rps = ((double)(1000 * intervalRequestCount)) / ((double)Duration.TotalMilliseconds);
             int averageLatencyMS = (int)(0 != intervalRequestCount ? intervalTotalRequestDurationMs / intervalRequestCount : 0);
+            double cpuPercentage = TotalCpuPercentageReported / intervalRequestCount;
 
             // Calculate percentiles
             var orderedLatencyTimes = LatencyDistributionMS.OrderBy((p) => p.Key);
@@ -117,6 +127,7 @@ namespace maa.perf.test.core.Utils
             }
 
             // Record values second
+            CpuPercentage = cpuPercentage;
             Count = intervalRequestCount;
             RPS = rps;
             AverageLatencyMS = averageLatencyMS;

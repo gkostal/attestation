@@ -13,12 +13,13 @@ namespace maa.perf.test.core.Utils
         {
             OpenFileIfNeeded(metrics);
 
-            string csvLine = string.Format("{0}, {1}, {2,22}, {3,8}, {4,5:f0}, {5,5}, {6,5}, {7,5}, {8,5}, {9,5}, {10,5}, {11, 5}",
+            string csvLine = string.Format("{0}, {1}, {2,22}, {3,8}, {4,5:f0}, {5,5:f1}, {6,5}, {7,5}, {8,5}, {9,5}, {10,5}, {11,5}, {12,5}",
                 metrics.ResourceDescription,
                 metrics.TestDescription,
                 metrics.EndTime.ToString(),
                 metrics.Count,
                 metrics.RPS,
+                metrics.CpuPercentage,
                 metrics.AverageLatencyMS,
                 metrics.Percentile50,
                 metrics.Percentile90,
@@ -56,7 +57,19 @@ namespace maa.perf.test.core.Utils
                             metrics.TestDescription);
                         _fileWriter = File.AppendText(_filePath);
 
-                        _fileWriter.WriteLine("\"ResourceDescription\",\"TestDescription\",\"IntervalTime\",\"Count\",\"RPS\",\"AverageLatency\",\"P50\",\"P90\",\"P95\",\"P99\",\"P99.5\",\"P99.9\"");
+                        _fileWriter.WriteLine("\"ResourceDescription\"," +
+                                              "\"TestDescription\"," +
+                                              "\"IntervalTime\"," +
+                                              "\"Count\"," +
+                                              "\"RPS\"," +
+                                              "\"CPU\"," +
+                                              "\"AverageLatency\"," +
+                                              "\"P50\"," +
+                                              "\"P90\"," +
+                                              "\"P95\"," +
+                                              "\"P99\"," +
+                                              "\"P99.5\"," +
+                                              "\"P99.9\"");
                     }
                 }
             }

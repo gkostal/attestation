@@ -230,7 +230,7 @@ namespace maa.perf.test.core.Utils
                 // *******************************
                 // Record CPU percentage (if known)
                 // *******************************
-                AddToDoubleThreadSafe(perfInfo.Cpu.Total, ref _totalCpuPercentageReported);
+                AddToDoubleThreadSafe(perfInfo.Machine.Cpu.Total, ref _totalCpuPercentageReported);
 
                 // *******************************
                 // Record latency time

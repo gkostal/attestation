@@ -7,12 +7,6 @@ namespace maa.perf.test.core.Model
     {
         public MachineInformation Machine { get; set; } = new MachineInformation();
 
-        public CpuInformation Cpu { get; set; } = new CpuInformation();
-
-        public MemoryInformation Memory { get; set; } = new MemoryInformation();
-
-        public EnclaveInformation Enclave { get; set; } = new EnclaveInformation();
-
         public RequestInformation Request { get; set; } = new RequestInformation();
 
         public static PerformanceInformation CreateFromHeaderString(string headerValue)
@@ -29,11 +23,13 @@ namespace maa.perf.test.core.Model
 
         public class MachineInformation
         {
-            public CpuInformation Cpu { get; set; }
+            public string MachineName { get; set; }
 
-            public MemoryInformation Memory { get; set; }
+            public CpuInformation Cpu { get; set; } = new CpuInformation();
 
-            public EnclaveInformation Enclave { get; set; }
+            public MemoryInformation Memory { get; set; } = new MemoryInformation();
+
+            public EnclaveInformation Enclave { get; set; } = new EnclaveInformation();
         }
 
         public class CpuInformation

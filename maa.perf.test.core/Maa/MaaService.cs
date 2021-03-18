@@ -1,5 +1,6 @@
 ﻿using maa.perf.test.core.Authentication;
 using maa.perf.test.core.Model;
+using maa.perf.test.core.Utils;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -61,7 +62,7 @@ namespace maa.perf.test.core.Maa
             _connectionInfo = connectionInfo;
             _uriScheme = _connectionInfo.UseHttp ? "http" : "https";
             _servicePort = string.IsNullOrEmpty(_connectionInfo.ServicePort) ? (_connectionInfo.UseHttp ? "80" : "443") : _connectionInfo.ServicePort;
-
+            //Tracer.TraceVerbose($"MaaService constructor - force reconnect flag == {_connectionInfo.ForceReconnects}");
         }
 
         public async Task<MaaResponse> AttestOpenEnclaveAsync(Preview.AttestOpenEnclaveRequestBody requestBody)

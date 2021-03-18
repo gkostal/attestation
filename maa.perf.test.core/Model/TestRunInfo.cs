@@ -7,6 +7,7 @@
             SimultaneousConnections = 5;
             TargetRPS = 1;
             ForceReconnects = false;
+            MeasureServerSideTime = false;
             RampUpTimeSeconds = 0;
             TestTimeSeconds = int.MaxValue;
             EnclaveInfoFile = "./Quotes/enclave.info.release.json";
@@ -16,6 +17,8 @@
         public double TargetRPS { get; set; }
 
         public bool ForceReconnects { get; set; }
+
+        public bool MeasureServerSideTime { get; set; }
 
         public int RampUpTimeSeconds { get; set; }
 

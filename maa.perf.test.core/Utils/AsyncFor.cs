@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using maa.perf.test.core.Model;
 
 namespace maa.perf.test.core.Utils
 {
@@ -32,7 +33,7 @@ namespace maa.perf.test.core.Utils
         public event IntervalMetricsNotification PerMinuteMetricsAvailable;
         public event IntervalMetricsNotification PerSecondMetricsAvailable;
 
-        public AsyncFor(Func<double> getTps, string resourceDescription, string testDescription)
+        public AsyncFor(Func<double> getTps, string resourceDescription, string testDescription, bool measureServerSideTime)
         {
             _getTps = getTps;
             _resourceDescription = resourceDescription;
@@ -41,24 +42,26 @@ namespace maa.perf.test.core.Utils
             _timer = new Stopwatch();
             _throttlingCurrentCount = 0;
             _throttlingTimer = new Stopwatch();
+            _measureServerSideTime = measureServerSideTime;
+            _warnedOfMissingServerSideTime = false;
         }
 
-        public AsyncFor(double maxTPS, string resourceDescription, string testDescription)
-            : this(() => maxTPS, resourceDescription, testDescription)
+        public AsyncFor(double maxTPS, string resourceDescription, string testDescription, bool measureServerSideTime)
+            : this(() => maxTPS, resourceDescription, testDescription, measureServerSideTime)
         {
         }
 
-        public async Task For(TimeSpan totalDuration, long maxSimultanousAwaits, Func<Task<double>> asyncWorkerFunction)
+        public async Task For(TimeSpan totalDuration, long maxSimultanousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction)
         {
             await For(() => _timer.Elapsed <= totalDuration, maxSimultanousAwaits, asyncWorkerFunction);
         }
 
-        public async Task For(long totalIterations, long maxSimultanousAwaits, Func<Task<double>> asyncWorkerFunction)
+        public async Task For(long totalIterations, long maxSimultanousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction)
         {
             await For(() => _currentCount <= totalIterations, maxSimultanousAwaits, asyncWorkerFunction);
         }
 
-        public async Task For(Func<bool> shouldContinue, long maxSimultanousAwaits, Func<Task<double>> asyncWorkerFunction)
+        public async Task For(Func<bool> shouldContinue, long maxSimultanousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction)
         {
             _timer.Start();
             _throttlingTimer.Start();
@@ -183,7 +186,7 @@ namespace maa.perf.test.core.Utils
             );
         }
 
-        private async Task InternalFor(Func<bool> shouldContinue, Func<Task<double>> asyncWorkerFunction)
+        private async Task InternalFor(Func<bool> shouldContinue, Func<Task<PerformanceInformation>> asyncWorkerFunction)
         {
             for (long curCount = Interlocked.Increment(ref _currentCount);
                 shouldContinue() && _enabled;
@@ -209,13 +212,25 @@ namespace maa.perf.test.core.Utils
                 // Do work measuring latency time
                 // *******************************
                 DateTime start = DateTime.Now;
-                double requestCharge = await asyncWorkerFunction();
-                int latencyTime = (int)(DateTime.Now - start).TotalMilliseconds;
+                var perfInfo = await asyncWorkerFunction();
+                var clientMeasuredTime = (int)(DateTime.Now - start).TotalMilliseconds;
+                var serverMeasuredTime = (int)perfInfo.Request.DurationMs;
+                int latencyTime = (_measureServerSideTime && (serverMeasuredTime > 0)) ? serverMeasuredTime : clientMeasuredTime;
 
                 // *******************************
-                // Record request charge
+                // Warn one time if server side 
+                // time is missing
                 // *******************************
-                AddToDoubleThreadSafe(requestCharge, ref _totalCpuPercentageReported);
+                if (_measureServerSideTime && !_warnedOfMissingServerSideTime && (serverMeasuredTime <= 0))
+                {
+                    Tracer.TraceWarning($"Server side time not available.  Measuring client side time instead of server side time.");
+                    _warnedOfMissingServerSideTime = true;
+                }
+
+                // *******************************
+                // Record CPU percentage (if known)
+                // *******************************
+                AddToDoubleThreadSafe(perfInfo.Cpu.Total, ref _totalCpuPercentageReported);
 
                 // *******************************
                 // Record latency time
@@ -291,6 +306,8 @@ namespace maa.perf.test.core.Utils
         private long _currentCount;
         private string _testDescription;
         private string _resourceDescription;
+        private bool _measureServerSideTime;
+        private bool _warnedOfMissingServerSideTime;
 
         // Throttling state - periodically resets to avoid long running "catch up" work
         private long _throttlingCurrentCount;

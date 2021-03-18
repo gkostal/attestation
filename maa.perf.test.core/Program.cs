@@ -72,7 +72,7 @@ namespace maa.perf.test.core
                     {
                         foreach (var apiInfo in _mixInfo.ApiMix)
                         {
-                            var myFor = new AsyncFor(testRunInfo.TargetRPS * apiInfo.Percentage, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo));
+                            var myFor = new AsyncFor(testRunInfo.TargetRPS * apiInfo.Percentage, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo), testRunInfo.MeasureServerSideTime);
                             if (_mixInfo.ApiMix.Count > 1)
                             {
                                 myFor.PerSecondMetricsAvailable += new ConsoleAggregatingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
@@ -122,7 +122,7 @@ namespace maa.perf.test.core
                     long intervalRps = (long)Math.Round((i + 1) * intervalRpsDelta);
                     Tracer.TraceInfo($"Ramping up. RPS = {intervalRps}");
 
-                    AsyncFor myRampUpFor = new AsyncFor(intervalRps, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo));
+                    AsyncFor myRampUpFor = new AsyncFor(intervalRps, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo), testRunInfo.MeasureServerSideTime);
                     myRampUpFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
                     _asyncForInstances.Add(myRampUpFor);
 

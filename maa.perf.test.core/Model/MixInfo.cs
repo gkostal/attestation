@@ -49,7 +49,7 @@ namespace maa.perf.test.core.Model
             {
                 var tr = TestRuns[i];
                 var timeDescription = tr.TestTimeSeconds == int.MaxValue ? "Infinite" : tr.TestTimeSeconds.ToString();
-                Tracer.TraceInfo($"    Test run #{i,-5}  RPS: {tr.TargetRPS,-5}  Connections: {tr.SimultaneousConnections,-5}  Time: {timeDescription}");
+                Tracer.TraceInfo($"    Test run #{i,-5}  RPS: {tr.TargetRPS,-5}  Connections: {tr.SimultaneousConnections,-5}  Reconnect: {tr.ForceReconnects}   ServerTime: {tr.MeasureServerSideTime}   Time: {timeDescription}");
             }
 
             Tracer.TraceInfo($"");

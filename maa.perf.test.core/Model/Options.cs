@@ -38,6 +38,9 @@ namespace maa.perf.test.core.Model
         [Option('f', "forcereconnects", Required = false, HelpText = "Force reconnects on each request")]
         public bool ForceReconnects { get; set; }
 
+        [Option('s', "serversidetime", Required = false, HelpText = "Measure server side time if available")]
+        public bool MeasureServerSideTime { get; set; }
+
         [Option('m', "rampuptime", Required = false, HelpText = "Ramp up time in seconds")]
         public int RampUpTimeSeconds { get; set; }
 
@@ -91,6 +94,7 @@ namespace maa.perf.test.core.Model
                     SimultaneousConnections = this.SimultaneousConnections,
                     TargetRPS = this.TargetRPS,
                     RampUpTimeSeconds = this.RampUpTimeSeconds,
+                    MeasureServerSideTime = this.MeasureServerSideTime,
                     TestTimeSeconds = this.TestTimeSeconds,
                     ForceReconnects = this.ForceReconnects,
                     EnclaveInfoFile = this.EnclaveInfoFile
@@ -126,9 +130,10 @@ namespace maa.perf.test.core.Model
 
             MixFileName = null;
 
-            SimultaneousConnections = 5;
+            SimultaneousConnections = 1;
             TargetRPS = 1;
             ForceReconnects = false;
+            MeasureServerSideTime = false;
             RampUpTimeSeconds = 0;
             TestTimeSeconds = int.MaxValue;
             EnclaveInfoFile = "./Quotes/enclave.info.release.json";
@@ -154,6 +159,7 @@ namespace maa.perf.test.core.Model
             Tracer.TraceInfo($"Simultaneous Connections : {SimultaneousConnections}");
             Tracer.TraceInfo($"Target RPS               : {TargetRPS}");
             Tracer.TraceInfo($"Force Reconnects         : {ForceReconnects}");
+            Tracer.TraceInfo($"Measure server side time : {MeasureServerSideTime}");
             Tracer.TraceInfo($"RampUpTimeSeconds        : {RampUpTimeSeconds}");
             Tracer.TraceInfo($"Test time in seconds     : {TestTimeSeconds}");
             Tracer.TraceInfo($"Enclave Info File        : {EnclaveInfoFile}");

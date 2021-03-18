@@ -23,10 +23,10 @@ namespace maa.perf.test.core.Maa
             _maaService = CreateMaaService();
         }
 
-        public async Task<double> CallApi()
+        public async Task<PerformanceInformation> CallApi()
         {
             var result = await GetCallback().Invoke(_maaService);
-            return result.PerfInfo.Cpu.Total;
+            return result.PerfInfo;
         }
 
         private MaaService CreateMaaService()

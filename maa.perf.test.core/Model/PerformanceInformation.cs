@@ -1,5 +1,6 @@
 ﻿using maa.perf.test.core.Utils;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace maa.perf.test.core.Model
 {
@@ -12,12 +13,12 @@ namespace maa.perf.test.core.Model
         public static PerformanceInformation CreateFromHeaderString(string headerValue)
         {
             var jsonValue = Base64Url.DecodeString(headerValue);
-            return JsonConvert.DeserializeObject<PerformanceInformation>(jsonValue);
+            return JsonConvert.DeserializeObject<PerformanceInformation>(jsonValue, new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() });
         }
 
         public string ExportToHeaderString()
         {
-            var jsonValue = JsonConvert.SerializeObject(this);
+            var jsonValue = JsonConvert.SerializeObject(this, new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() });
             return Base64Url.EncodeString(jsonValue);
         }
 

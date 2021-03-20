@@ -80,9 +80,9 @@ namespace maa.perf.test.core
                             else
                             {
                                 myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
-                                myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
                             }
 
+                            myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
                             if (testRunInfo.TestTimeSeconds != int.MaxValue)
                             {
                                 myFor.PerSecondMetricsAvailable += uberCsvAggregator.MetricsAvailableHandler;

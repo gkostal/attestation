@@ -11,7 +11,6 @@ namespace maa.perf.test.core.Maa
         private ApiInfo _apiInfo;
         private List<WeightedAttestationProvidersInfo> _weightedProviders;
         private EnclaveInfo _enclaveInfo;
-        private MaaService _maaService;
         private bool _forceReconnects;
 
         public MaaServiceApiCaller(ApiInfo apiInfo, List<WeightedAttestationProvidersInfo> weightedProviders, string enclaveInfoFileName, bool forceReconnects)
@@ -20,13 +19,12 @@ namespace maa.perf.test.core.Maa
             _weightedProviders = weightedProviders;
             _enclaveInfo = EnclaveInfo.CreateFromFile(enclaveInfoFileName);
             _forceReconnects = forceReconnects;
-            _maaService = CreateMaaService();
         }
 
         public async Task<PerformanceInformation> CallApi()
         {
-            var result = await GetCallback().Invoke(_maaService);
-            return result.PerfInfo;
+            var maaResponse = await GetCallback().Invoke(CreateMaaService());
+            return maaResponse.PerfInfo;
         }
 
         private MaaService CreateMaaService()

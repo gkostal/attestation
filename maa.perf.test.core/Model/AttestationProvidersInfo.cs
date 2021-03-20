@@ -9,7 +9,7 @@ namespace maa.perf.test.core.Model
     public class AttestationProvidersInfo : AttestationProviderInfo
     {
         const string TenantNameRegEx = @"(\D*)(\d*)";
-        const string ProviderDnsNameRegEx = @"(\D*)(\d*)(\..*)";
+        const string ProviderDnsNameRegEx = @"((\D+\d*\D+)\d+[.]?)(.*)";
 
         public AttestationProvidersInfo()
         {
@@ -64,8 +64,8 @@ namespace maa.perf.test.core.Model
             if (!this.DnsName.Equals("localhost", StringComparison.InvariantCultureIgnoreCase))
             {
                 var pre = Regex.Match(this.DnsName, ProviderDnsNameRegEx);
-                dnsNameBase = pre.Groups[1].Value;
-                dnsSubDomain = pre.Groups[3].Value;
+                dnsNameBase = pre.Groups[2].Value;
+                dnsSubDomain = $".{pre.Groups[3].Value}";
             }
             if (!string.IsNullOrEmpty(this.TenantNameOverride))
             {

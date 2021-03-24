@@ -8,11 +8,14 @@ namespace maa.perf.test.core.Model
         public AttestationProviderInfo()
         {
             DnsName = "";
+            HostName = "";
             TenantNameOverride = "";
         }
 
         [JsonProperty]
         public string DnsName { get; set; }
+        [JsonProperty]
+        public string HostName { get; set; }
         [JsonProperty]
         public string TenantNameOverride { get; set; }
     }

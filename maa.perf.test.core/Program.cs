@@ -24,6 +24,7 @@ namespace maa.perf.test.core
         public static void Main(string[] args)
         {
             ServicePointManager.DefaultConnectionLimit = 1024 * 32;
+            ServicePointManager.ServerCertificateValidationCallback += (a, b, c, d) => true;
 
             Parser.Default.ParseArguments<Options>(args)
                 .WithParsed<Options>(o =>

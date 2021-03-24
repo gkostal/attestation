@@ -70,6 +70,9 @@ namespace maa.perf.test.core.Model
         [Option('p', "provider", Required = false, HelpText = "Attestation provider DNS name")]
         public string AttestationProvider { get; set; }
 
+        [Option('n', "hostname", Required = false, HelpText = "Host name for HTTP header override")]
+        public string HostName { get; set; }
+
         [Option('t', "tenant", Required = false, HelpText = "Override tenant name (default extracted from DNS name)")]
         public string TenantName { get; set; }
 
@@ -114,6 +117,7 @@ namespace maa.perf.test.core.Model
                 theMixInfo.ProviderMix.Add(new WeightedAttestationProvidersInfo()
                 {
                     DnsName = this.AttestationProvider,
+                    HostName = this.HostName,
                     TenantNameOverride = this.TenantName,
                     ProviderCount = this.ProviderCount,
                     Weight = 100.0d,
@@ -145,6 +149,7 @@ namespace maa.perf.test.core.Model
             Url = null;
 
             AttestationProvider = "sharedcac.cac.attest.azure.net";
+            HostName = "";
             TenantName = null;
             ProviderCount = 1;
         }

@@ -40,6 +40,7 @@ namespace maa.perf.test.core.Maa
                 maaConnectionInfo = new MaaConnectionInfo()
                 {
                     DnsName = randomSpecificProvider.DnsName,
+                    HostName = randomSpecificProvider.HostName,
                     TenantNameOverride = randomSpecificProvider.TenantNameOverride,
                     ForceReconnects = _forceReconnects,
                     ServicePort = _apiInfo.ServicePort,
@@ -51,6 +52,7 @@ namespace maa.perf.test.core.Maa
                 maaConnectionInfo = new MaaConnectionInfo()
                 {
                     DnsName = string.Empty,
+                    HostName = string.Empty,
                     TenantNameOverride = string.Empty,
                     ForceReconnects = _forceReconnects,
                     ServicePort = _apiInfo.ServicePort,

@@ -112,6 +112,12 @@ namespace maa.perf.test.core.Maa
                 request.Headers.Add(TenantNameHeder, _connectionInfo.TenantNameOverride);
             }
 
+            // Host name override?
+            if (!string.IsNullOrEmpty(_connectionInfo.HostName))
+            {
+                request.Headers.Host = _connectionInfo.HostName;
+            }
+
             // Send request
             var response = await MyHttpClient.SendAsync(request);
 
@@ -138,6 +144,12 @@ namespace maa.perf.test.core.Maa
             if (!string.IsNullOrEmpty(_connectionInfo.TenantNameOverride))
             {
                 request.Headers.Add(TenantNameHeder, _connectionInfo.TenantNameOverride);
+            }
+
+            // Host name override?
+            if (!string.IsNullOrEmpty(_connectionInfo.HostName))
+            {
+                request.Headers.Host = _connectionInfo.HostName;
             }
 
             // Send request

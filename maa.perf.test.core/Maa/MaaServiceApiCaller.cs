@@ -8,6 +8,7 @@ namespace maa.perf.test.core.Maa
 {
     public class MaaServiceApiCaller
     {
+        public static Dictionary<string, long> _exceptionHistory = new Dictionary<string, long>();
         private ApiInfo _apiInfo;
         private List<WeightedAttestationProvidersInfo> _weightedProviders;
         private EnclaveInfo _enclaveInfo;
@@ -106,6 +107,17 @@ namespace maa.perf.test.core.Maa
             catch (Exception x)
             {
                 Tracer.TraceError($"Exception caught: {x.ToString()}");
+                lock (MaaServiceApiCaller._exceptionHistory)
+                {
+                    if (_exceptionHistory.ContainsKey(x.Message))
+                    {
+                        _exceptionHistory[x.Message]++;
+                    }
+                    else
+                    {
+                        _exceptionHistory[x.Message] = 1;
+                    }
+                }
             }
 
             return await Task.FromResult(new MaaService.MaaResponse());

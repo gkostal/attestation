@@ -6,7 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace maa.perf.test.core.Maa
 {
@@ -38,6 +40,7 @@ namespace maa.perf.test.core.Maa
         private MaaConnectionInfo _connectionInfo;
         private string _uriScheme;
         private string _servicePort;
+        private int _tenantIndex = 0;
 
         public HttpClient MyHttpClient =>
             _connectionInfo.ForceReconnects ? new HttpClient(GetHttpRequestHandler()) : theHttpClient;
@@ -62,23 +65,39 @@ namespace maa.perf.test.core.Maa
             _connectionInfo = connectionInfo;
             _uriScheme = _connectionInfo.UseHttp ? "http" : "https";
             _servicePort = string.IsNullOrEmpty(_connectionInfo.ServicePort) ? (_connectionInfo.UseHttp ? "80" : "443") : _connectionInfo.ServicePort;
-            //Tracer.TraceVerbose($"MaaService constructor - force reconnect flag == {_connectionInfo.ForceReconnects}");
+
+            string DnsNameRegEx = @"((\D+\d*\D+)(\d+)[.]?)(.*)";
+            var tre = Regex.Match(_connectionInfo.DnsName.Split(".")[0], DnsNameRegEx);
+            _tenantIndex = int.Parse(tre.Groups[3].Value);
         }
 
         public async Task<MaaResponse> AttestOpenEnclaveAsync(Preview.AttestOpenEnclaveRequestBody requestBody)
         {
-            return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/Tee/OpenEnclave?api-version=2018-09-01-preview", requestBody);
+            var result = await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/Tee/OpenEnclave?api-version=2018-09-01-preview", requestBody);
+
+            VerifyJwtResponse(result.Body);
+            return result;
         }
 
         //2020-10-01
         public async Task<MaaResponse> AttestOpenEnclaveAsync(Ga.AttestOpenEnclaveRequestBody requestBody)
         {
-            return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
+            var result = await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
+
+            JObject obj = JObject.Parse(result.Body);
+            var token = (string) obj["token"];
+            VerifyJwtResponse(token);
+            return result;
         }
 
         public async Task<MaaResponse> AttestSgxEnclaveAsync(Ga.AttestSgxEnclaveRequestBody requestBody)
         {
-            return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/SgxEnclave?api-version=2020-10-01", requestBody);
+            var result = await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/SgxEnclave?api-version=2020-10-01", requestBody);
+
+            JObject obj = JObject.Parse(result.Body);
+            var token = (string)obj["token"];
+            VerifyJwtResponse(token);
+            return result;
         }
 
         public async Task<MaaResponse> GetOpenIdConfigurationAsync()
@@ -169,5 +188,14 @@ namespace maa.perf.test.core.Maa
             return perfInfo;
         }
 
+        private void VerifyJwtResponse(string jwt)
+        {
+            var extractedJwt = JwtFormatter.FormatJwt(jwt);
+            var index = extractedJwt.IndexOf($"{_tenantIndex}\": \"value{_tenantIndex}\"");
+            if (index == -1)
+            {
+                throw new Exception($"VerifyJwtResponse failed for {_tenantIndex}");
+            }
+        }
     }
 }

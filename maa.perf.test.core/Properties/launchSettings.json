@@ -2,7 +2,7 @@
   "profiles": {
     "maa.perf.test.core": {
       "commandName": "Project",
-      "commandLineArgs": "-x C:\\tmp\\mixes\\eus.multiple.json"
+      "commandLineArgs": "-p wus2perftest0.wus2.perf.attest.azure.net -c 1 -r 0.001 -a AttestOpenEnclave"
     }
   }
 }

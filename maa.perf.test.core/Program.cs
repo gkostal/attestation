@@ -170,6 +170,16 @@ namespace maa.perf.test.core
             {
                 af.Terminate();
             }
+
+            // Print out exception history
+            lock (MaaServiceApiCaller._exceptionHistory)
+            {
+                Tracer.TraceWarning($"Exception Summary");
+                foreach (var x in MaaServiceApiCaller._exceptionHistory)
+                {
+                    Tracer.TraceWarning($"{x.Value,10} : {x.Key}");
+                }
+            }
         }
     }
 }

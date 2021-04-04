@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 // TODO: 
@@ -16,10 +17,10 @@ namespace maa.perf.test.core
 {
     public class Program
     {
-        private Options _options;
+        private readonly Options _options;
         private MixInfo _mixInfo;
-        private List<AsyncFor> _asyncForInstances = new List<AsyncFor>();
-        private bool _terminate = false;
+        private readonly List<AsyncFor> _asyncForInstances = new List<AsyncFor>();
+        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         public static void Main(string[] args)
         {
@@ -54,7 +55,7 @@ namespace maa.perf.test.core
 
             using (var uberCsvAggregator = new CsvAggregatingMetricsHandler())
             {
-                for (int i = 0; i < _mixInfo.TestRuns.Count && !_terminate; i++)
+                for (var i = 0; i < _mixInfo.TestRuns.Count && !_cancellationTokenSource.IsCancellationRequested; i++)
                 {
                     var testRunInfo = _mixInfo.TestRuns[i];
                     var asyncRunners = new List<Task>();
@@ -68,7 +69,7 @@ namespace maa.perf.test.core
                     await RampUpAsync(testRunInfo);
 
                     // Initiate separate asyncfor for each API in the mix
-                    if (!_terminate)
+                    if (!_cancellationTokenSource.IsCancellationRequested)
                     {
                         foreach (var apiInfo in _mixInfo.ApiMix)
                         {
@@ -89,14 +90,33 @@ namespace maa.perf.test.core
                             }
 
                             _asyncForInstances.Add(myFor);
-                            asyncRunners.Add(myFor.For(TimeSpan.FromSeconds(testRunInfo.TestTimeSeconds), testRunInfo.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects).CallApi));
+                            asyncRunners.Add(myFor.ForAsync(
+                                TimeSpan.FromSeconds(testRunInfo.TestTimeSeconds), 
+                                testRunInfo.SimultaneousConnections, 
+                                new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects).CallApi,
+                                _cancellationTokenSource.Token));
                         }
                     }
 
-                    // Wait for all to be complete (happens when crtl-c is hit)
-                    await Task.WhenAll(asyncRunners.ToArray());
+                    // Wait for all to be complete (happens when they finish or crtl-c is hit)
+                    try
+                    {
+                        await Task.WhenAll(asyncRunners.ToArray());
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        // Ignore task cancelled if we requested cancellation via ctrl-c
+                        if (_cancellationTokenSource.IsCancellationRequested)
+                        {
+                            Tracer.TraceInfo(($"Organized shutdown in progress.  All {asyncRunners.Count} asyncfor instances have gracefully shutdown."));
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
 
-                    Tracer.TraceInfo("");
+                    //Tracer.TraceInfo("");
                     Tracer.TraceInfo($"Completed test run #{i}   RPS: {testRunInfo.TargetRPS}  Connections: {testRunInfo.SimultaneousConnections}");
                 }
             }
@@ -106,7 +126,7 @@ namespace maa.perf.test.core
         private async Task RampUpAsync(TestRunInfo testRunInfo)
         {
             // Handle ramp up if defined
-            if (testRunInfo.RampUpTimeSeconds > 4 && !_terminate)
+            if (testRunInfo.RampUpTimeSeconds > 4 && !_cancellationTokenSource.IsCancellationRequested)
             {
                 Tracer.TraceInfo($"Ramping up starts.");
 
@@ -115,7 +135,7 @@ namespace maa.perf.test.core
                 int numberIntervals = Math.Min(testRunInfo.RampUpTimeSeconds / 5, 6);
                 TimeSpan intervalLength = (endTime - startTime) / numberIntervals;
                 double intervalRpsDelta = ((double)testRunInfo.TargetRPS) / ((double)numberIntervals);
-                for (int i = 0; i < numberIntervals && !_terminate; i++)
+                for (int i = 0; i < numberIntervals && !_cancellationTokenSource.IsCancellationRequested; i++)
                 {
                     var apiInfo = _mixInfo.ApiMix[i % _mixInfo.ApiMix.Count];
 
@@ -126,7 +146,26 @@ namespace maa.perf.test.core
                     myRampUpFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
                     _asyncForInstances.Add(myRampUpFor);
 
-                    await myRampUpFor.For(intervalLength, testRunInfo.SimultaneousConnections, new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects).CallApi);
+                    try
+                    {
+                        await myRampUpFor.ForAsync(
+                            intervalLength,
+                            testRunInfo.SimultaneousConnections,
+                            new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects).CallApi,
+                            _cancellationTokenSource.Token);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        // Ignore task cancelled if we requested cancellation via ctrl-c
+                        if (_cancellationTokenSource.IsCancellationRequested)
+                        {
+                            Tracer.TraceInfo(($"Organized shutdown in progress.  All asyncfor instances have gracefully shutdown."));
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
                 }
                 Tracer.TraceInfo($"Ramping up complete.");
             }
@@ -159,17 +198,14 @@ namespace maa.perf.test.core
 
         private void HandleControlC(object sender, ConsoleCancelEventArgs e)
         {
-            Tracer.TraceInfo($"Organized shutdown starting.  Informing {_asyncForInstances.Count} asyncfor instances to terminate.\n");
+            Tracer.TraceInfo("");
+            Tracer.TraceInfo($"Organized shutdown starting.  Informing {_asyncForInstances.Count} asyncfor instances to terminate.");
 
-            // Do NOT stop running application yet
-            _terminate = true;
+            // Do NOT stop running application
             e.Cancel = true;
 
-            // Tell all asyncfor instances to stop
-            foreach (var af in _asyncForInstances)
-            {
-                af.Terminate();
-            }
+            // Instead, tell all asyncfor tasks to cancel their work now
+            _cancellationTokenSource.Cancel();
         }
     }
 }

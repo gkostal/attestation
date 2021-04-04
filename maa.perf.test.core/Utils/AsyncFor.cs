@@ -13,20 +13,14 @@ namespace maa.perf.test.core.Utils
         #region Public
 
         /// <summary>
-        /// On one thread asynchronously call function 'asyncWorkerFunction' a total 
-        /// of 'totalIterations' times asynchronously waiting a maximum of 
-        /// 'maxSimultaneousAwaits' times.
+        /// Asynchronously call function 'asyncWorkerFunction' a total  of 'totalIterations' times
+        /// running ',axSimultaneousAwaits' Tasks in parallel.
         /// </summary>
         /// <param name="totalIterations">Total number of times to execute asyncWorkerFunction</param>
-        /// <param name="maxSimultanousAwaits">Maximum number of simultaneous awaits</param>
+        /// <param name="maxSimultanousAwaits">Maximum number of simultaneous awaits (i.e. number of simultaneous Tasks)</param>
         /// <param name="asyncWorkerFunction">Async worker function that performs desired action(s)</param>
         /// <param name="maxTPS">Maximum number of transactions per second, 0 means no limit</param>
         /// <returns></returns>
-        //public static async Task StaticFor(long totalIterations, long maxSimultanousAwaits, Func<Task> asyncWorkerFunction, long maxTPS = 0)
-        //{
-        //    AsyncFor asyncFor = new AsyncFor(maxTPS);
-        //    await asyncFor.For(totalIterations, maxSimultanousAwaits, asyncWorkerFunction);
-        //}
 
         public delegate void IntervalMetricsNotification(IntervalMetrics metrics);
         public event IntervalMetricsNotification PopulateExtendedMetrics;
@@ -38,12 +32,19 @@ namespace maa.perf.test.core.Utils
             _getTps = getTps;
             _resourceDescription = resourceDescription;
             _testDescription = testDescription;
+            _measureServerSideTime = measureServerSideTime;
+
+            _runningTaskCount = 0;
             _currentCount = 0;
-            _timer = new Stopwatch();
+            _warnedOfMissingServerSideTime = false;
             _throttlingCurrentCount = 0;
             _throttlingTimer = new Stopwatch();
-            _measureServerSideTime = measureServerSideTime;
-            _warnedOfMissingServerSideTime = false;
+            _timer = new Stopwatch();
+            _rnd = new Random();
+            _lastReportTime = DateTime.Now;
+            _intervalLatencyTimes = new ConcurrentDictionary<int, int>();
+            _totalCpuPercentageReported = 0.0;
+            _perMinuteMetrics = null;
         }
 
         public AsyncFor(double maxTPS, string resourceDescription, string testDescription, bool measureServerSideTime)
@@ -51,42 +52,40 @@ namespace maa.perf.test.core.Utils
         {
         }
 
-        public async Task For(TimeSpan totalDuration, long maxSimultanousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction)
+        public async Task ForAsync(TimeSpan totalDuration, long maxSimultaneousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction, CancellationToken cancellationToken)
         {
-            await For(() => _timer.Elapsed <= totalDuration, maxSimultanousAwaits, asyncWorkerFunction);
+            await ForAsync(() => _timer.Elapsed <= totalDuration, maxSimultaneousAwaits, asyncWorkerFunction, cancellationToken);
         }
 
-        public async Task For(long totalIterations, long maxSimultanousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction)
+        public async Task ForAsync(long totalIterations, long maxSimultaneousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction, CancellationToken cancellationToken)
         {
-            await For(() => _currentCount <= totalIterations, maxSimultanousAwaits, asyncWorkerFunction);
+            await ForAsync(() => _currentCount <= totalIterations, maxSimultaneousAwaits, asyncWorkerFunction, cancellationToken);
         }
 
-        public async Task For(Func<bool> shouldContinue, long maxSimultanousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction)
+        public async Task ForAsync(Func<bool> shouldContinue, long maxSimultaneousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction, CancellationToken cancellationToken)
         {
             _timer.Start();
             _throttlingTimer.Start();
-            _enabled = true;
             _testDescription ??= asyncWorkerFunction.Method.Name;
+            var reportCancellationTokenSource = new CancellationTokenSource();
+            var reportLinkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(reportCancellationTokenSource.Token, cancellationToken);
 
-            List<Task> tasks = new List<Task>();
-            for (long i = 0; i < maxSimultanousAwaits; i++)
+            // Run maxSimultaneousAwaits tasks to perform the work
+            List<Task> asyncForTasks = new List<Task>();
+            for (long i = 0; i < maxSimultaneousAwaits; i++)
             {
-                tasks.Add(InternalFor(shouldContinue, asyncWorkerFunction));
+                asyncForTasks.Add(Task.Run(() =>InternalForAsync(shouldContinue, asyncWorkerFunction, cancellationToken), cancellationToken));
             }
 
-            // On purpose do NOT await the loop that prints status forever ...
-            // Let it run forever ... 
-#pragma warning disable 4014
-            ReportObservedTPSAsync();
+            // Run one task to report on status every second
+            var reportBackgroundTask = Task.Run(() => ReportObservedTpsAsync(cancellationToken), reportCancellationTokenSource.Token);
 
-            // Wait on all 
-            await Task.WhenAll(tasks.ToArray());
-            _enabled = false;
-        }
+            // Wait on all asyncfor tasks to complete
+            await Task.WhenAll(asyncForTasks.ToArray());
 
-        public void Terminate()
-        {
-            _enabled = false;
+            // Wait on report background task to complete, signaling it to cancel now
+            reportCancellationTokenSource.Cancel();
+            await Task.WhenAll(new Task[] { reportBackgroundTask });
         }
 
         #endregion
@@ -101,38 +100,48 @@ namespace maa.perf.test.core.Utils
                 1000 - currentMillisecondOffset);
         }
 
-        private async Task ReportObservedTPSAsync()
+        private async Task ReportObservedTpsAsync(CancellationToken cancellationToken)
         {
             _lastReportTime = DateTime.Now;
 
             // Write TPS periodically
-            while (_enabled)
+            while (true)
             {
+                // Bail if cancelled
+                cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
                     // Wait for start of next interval
-                    await Task.Delay(GetMillisecondsToStartOfNextInterval());
+                    await Task.Delay(GetMillisecondsToStartOfNextInterval(), cancellationToken);
 
-                    // Don't send a notification if we've been terminated
-                    if (_enabled)
-                    {
-                        // Note info for current interval, resetting interval aggretation data members
-                        DateTime currentTimeSnapshot = DateTime.Now;
-                        var recentLatencyTimes = Interlocked.Exchange(ref _intervalLatencyTimes, new ConcurrentDictionary<int, int>());
-                        var recentCpuPercentageReported = Interlocked.Exchange(ref _totalCpuPercentageReported, 0.0);
+                    // Bail if cancelled
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                        // Calculate one second interval metrics
-                        IntervalMetrics m = InitPerSecondIntervalMetric(currentTimeSnapshot, currentTimeSnapshot - _lastReportTime, recentLatencyTimes, recentCpuPercentageReported);
-                        PopulateExtendedMetrics?.Invoke(m);
-                        PerSecondMetricsAvailable?.Invoke(m);
+                    // Note info for current interval, resetting interval aggretation data members
+                    DateTime currentTimeSnapshot = DateTime.Now;
+                    var recentLatencyTimes = Interlocked.Exchange(ref _intervalLatencyTimes,
+                        new ConcurrentDictionary<int, int>());
+                    var recentCpuPercentageReported = Interlocked.Exchange(ref _totalCpuPercentageReported, 0.0);
 
-                        // Update one minute interval metrics & post if needed
-                        UpdatePerMinuteIntervalMetrics(m);
+                    // Calculate one second interval metrics
+                    IntervalMetrics m = InitPerSecondIntervalMetric(currentTimeSnapshot,
+                        currentTimeSnapshot - _lastReportTime, recentLatencyTimes, recentCpuPercentageReported);
+                    PopulateExtendedMetrics?.Invoke(m);
+                    PerSecondMetricsAvailable?.Invoke(m);
 
-                        // Remember this interval
-                        _lastReportTime = currentTimeSnapshot;
-                        await Task.Delay(10);  // Don't run too fast & report more than once per interval
-                    }
+                    // Update one minute interval metrics & post if needed
+                    UpdatePerMinuteIntervalMetrics(m);
+
+                    // Remember this interval
+                    _lastReportTime = currentTimeSnapshot;
+                    
+                    // Don't run too fast & report more than once per interval
+                    await Task.Delay(10, cancellationToken); 
+                }
+                catch (OperationCanceledException)
+                {
+                    // Don't throw exception when cancelled, just exit silently
+                    break;
                 }
                 catch (Exception x)
                 {
@@ -186,85 +195,110 @@ namespace maa.perf.test.core.Utils
             );
         }
 
-        private async Task InternalFor(Func<bool> shouldContinue, Func<Task<PerformanceInformation>> asyncWorkerFunction)
+        private async Task InternalForAsync(Func<bool> shouldContinue, Func<Task<PerformanceInformation>> asyncWorkerFunction, CancellationToken cancellationToken)
         {
-            for (long curCount = Interlocked.Increment(ref _currentCount);
-                shouldContinue() && _enabled;
-                curCount = Interlocked.Increment(ref _currentCount))
+            Interlocked.Increment(ref _runningTaskCount);
+
+            try
             {
-                // *******************************
-                // Throttling data bookkeeping
-                // *******************************
-                if (_throttlingTimer.Elapsed > THROTTLING_INTERVAL)
+                for (long curCount = Interlocked.Increment(ref _currentCount);
+                    shouldContinue();
+                    curCount = Interlocked.Increment(ref _currentCount))
                 {
-                    lock (_throttlingTimer)
+                    // *******************************
+                    // Bail if cancellation requested
+                    // *******************************
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // *******************************
+                    // Throttling data bookkeeping
+                    // *******************************
+                    if (_throttlingTimer.Elapsed > _throttlingInterval)
                     {
-                        if (_throttlingTimer.Elapsed > THROTTLING_INTERVAL)
+                        lock (_throttlingTimer)
                         {
-                            _throttlingTimer.Restart();
-                            _throttlingCurrentCount = 0;
+                            if (_throttlingTimer.Elapsed > _throttlingInterval)
+                            {
+                                _throttlingTimer.Restart();
+                                _throttlingCurrentCount = 0;
+                            }
                         }
                     }
-                }
-                Interlocked.Increment(ref _throttlingCurrentCount);
 
-                // *******************************
-                // Do work measuring latency time
-                // *******************************
-                DateTime start = DateTime.Now;
-                var perfInfo = await asyncWorkerFunction();
-                var clientMeasuredTime = (int)(DateTime.Now - start).TotalMilliseconds;
-                var serverMeasuredTime = (int)perfInfo.Request.DurationMs;
-                int latencyTime = (_measureServerSideTime && (serverMeasuredTime > 0)) ? serverMeasuredTime : clientMeasuredTime;
+                    Interlocked.Increment(ref _throttlingCurrentCount);
 
-                // *******************************
-                // Warn one time if server side 
-                // time is missing
-                // *******************************
-                if (_measureServerSideTime && !_warnedOfMissingServerSideTime && (serverMeasuredTime <= 0))
-                {
-                    Tracer.TraceWarning($"Server side time not available.  Measuring client side time instead of server side time.");
-                    _warnedOfMissingServerSideTime = true;
-                }
+                    // *******************************
+                    // Do work measuring latency time
+                    // *******************************
+                    DateTime start = DateTime.Now;
+                    var perfInfo = await asyncWorkerFunction();
+                    var clientMeasuredTime = (int) (DateTime.Now - start).TotalMilliseconds;
+                    var serverMeasuredTime = (int) perfInfo.Request.DurationMs;
+                    int latencyTime = (_measureServerSideTime && (serverMeasuredTime > 0))
+                        ? serverMeasuredTime
+                        : clientMeasuredTime;
 
-                // *******************************
-                // Record CPU percentage (if known)
-                // *******************************
-                AddToDoubleThreadSafe(perfInfo.Machine.Cpu.Total, ref _totalCpuPercentageReported);
-
-                // *******************************
-                // Record latency time
-                // *******************************
-                _intervalLatencyTimes.AddOrUpdate(latencyTime, 1, (key, oldvalue) => oldvalue + 1);
-
-                // *******************************
-                // Slow down if needed
-                // *******************************
-                if (shouldContinue() && _enabled)
-                {
-                    if ((_getTps() > 0) && (_throttlingTimer.Elapsed.Milliseconds > 0))
+                    // *******************************
+                    // Warn one time if server side 
+                    // time is missing
+                    // *******************************
+                    if (_measureServerSideTime && !_warnedOfMissingServerSideTime && (serverMeasuredTime <= 0))
                     {
-                        // Calculate if we need to delay
-                        double minMilliseconds = ((double)_throttlingCurrentCount / (double)_getTps()) * 1000.0;
-                        long delayMilliseconds = (long)(minMilliseconds - (double)_throttlingTimer.Elapsed.TotalMilliseconds);
+                        Tracer.TraceWarning(
+                            $"Server side time not available.  Measuring client side time instead of server side time.");
+                        _warnedOfMissingServerSideTime = true;
+                    }
 
-                        // Delay if running too fast
-                        while (delayMilliseconds > 0 && _enabled && shouldContinue())
+                    // *******************************
+                    // Record CPU percentage (if known)
+                    // *******************************
+                    AddToDoubleThreadSafe(perfInfo.Machine.Cpu.Total, ref _totalCpuPercentageReported);
+
+                    // *******************************
+                    // Record latency time
+                    // *******************************
+                    _intervalLatencyTimes.AddOrUpdate(latencyTime, 1, (key, oldvalue) => oldvalue + 1);
+
+                    // *******************************
+                    // Slow down if needed
+                    // *******************************
+                    if (shouldContinue())
+                    {
+                        if ((_getTps() > 0) && (_throttlingTimer.Elapsed.Milliseconds > 0))
                         {
-                            // Delay with a bit of jitter and no longer than 100ms (so that we exit gracefully at the stop time if set)
-                            int currentDelay = (int)(delayMilliseconds) + _rnd.Next(0, 25);
-                            await Task.Delay(Math.Min(currentDelay, 100));
+                            // Calculate if we need to delay
+                            double minMilliseconds = ((double) _throttlingCurrentCount / (double) _getTps()) * 1000.0;
+                            long delayMilliseconds =
+                                (long) (minMilliseconds - (double) _throttlingTimer.Elapsed.TotalMilliseconds);
 
-                            // Determine if we still need to delay
-                            minMilliseconds = ((double)_throttlingCurrentCount / (double)_getTps()) * 1000.0;
-                            delayMilliseconds = (long)(minMilliseconds - (double)_throttlingTimer.Elapsed.TotalMilliseconds);
+                            // Delay if running too fast
+                            while (delayMilliseconds > 0 && shouldContinue())
+                            {
+                                // Delay with a bit of jitter and no longer than 100ms (so that we exit gracefully at the stop time if set)
+                                int currentDelay = (int) (delayMilliseconds) + _rnd.Next(0, 25);
+                                await Task.Delay(Math.Min(currentDelay, 100), cancellationToken);
+
+                                // Determine if we still need to delay
+                                minMilliseconds = ((double) _throttlingCurrentCount / (double) _getTps()) * 1000.0;
+                                delayMilliseconds =
+                                    (long) (minMilliseconds - (double) _throttlingTimer.Elapsed.TotalMilliseconds);
+                            }
                         }
                     }
                 }
             }
+            catch (OperationCanceledException)
+            {
+                Tracer.TraceInfo(
+                    ($"Organized shutdown in progress.  An async connection is exiting gracefully now.  {_runningTaskCount - 1} remaining."));
+                throw;
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _runningTaskCount);
+            }
         }
 
-        // AddToTotal safely adds a value to the running total.
         public double AddToDoubleThreadSafe(double addend, ref double totalValue)
         {
             double initialValue, computedValue;
@@ -302,27 +336,27 @@ namespace maa.perf.test.core.Utils
         private Func<double> _getTps;
 
         // Global static state
-        private bool _enabled = false;
+        private long _runningTaskCount;
         private long _currentCount;
         private string _testDescription;
-        private string _resourceDescription;
-        private bool _measureServerSideTime;
+        private readonly string _resourceDescription;
+        private readonly bool _measureServerSideTime;
         private bool _warnedOfMissingServerSideTime;
 
         // Throttling state - periodically resets to avoid long running "catch up" work
         private long _throttlingCurrentCount;
-        private Stopwatch _throttlingTimer;
-        readonly TimeSpan THROTTLING_INTERVAL = TimeSpan.FromSeconds(15);
+        private readonly Stopwatch _throttlingTimer;
+        private readonly TimeSpan _throttlingInterval = TimeSpan.FromSeconds(15);
 
         // Helper objects
-        private Stopwatch _timer;
-        private Random _rnd = new Random();
+        private readonly Stopwatch _timer;
+        private readonly Random _rnd;
 
         // Interval state
-        private DateTime _lastReportTime = DateTime.Now;
-        private ConcurrentDictionary<int, int> _intervalLatencyTimes = new ConcurrentDictionary<int, int>();
-        private double _totalCpuPercentageReported = 0.0;
-        private IntervalMetrics _perMinuteMetrics = null;
+        private DateTime _lastReportTime;
+        private ConcurrentDictionary<int, int> _intervalLatencyTimes;
+        private double _totalCpuPercentageReported;
+        private IntervalMetrics _perMinuteMetrics;
 
         #endregion
     }

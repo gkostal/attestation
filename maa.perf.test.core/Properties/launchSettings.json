@@ -2,7 +2,7 @@
   "profiles": {
     "maa.perf.test.core": {
       "commandName": "Project",
-      "commandLineArgs": "-x C:\\tmp\\mixes\\eus.multiple.json"
+      "commandLineArgs": "-p sharedwus2.wus2.perf.attest.azure.net -c 128 -r 1 -f"
     }
   }
 }

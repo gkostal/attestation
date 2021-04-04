@@ -78,7 +78,7 @@ namespace maa.perf.test.core.Utils
             }
 
             // Run one task to report on status every second
-            var reportBackgroundTask = Task.Run(() => ReportObservedTpsAsync(cancellationToken), reportCancellationTokenSource.Token);
+            var reportBackgroundTask = Task.Run(() => ReportObservedTpsAsync(reportLinkedCancellationTokenSource.Token), reportLinkedCancellationTokenSource.Token);
 
             // Wait on all asyncfor tasks to complete
             await Task.WhenAll(asyncForTasks.ToArray());
@@ -290,7 +290,7 @@ namespace maa.perf.test.core.Utils
             catch (OperationCanceledException)
             {
                 Tracer.TraceInfo(
-                    ($"Organized shutdown in progress.  An async connection is exiting gracefully now.  {_runningTaskCount - 1} remaining."));
+                    $"Organized shutdown in progress.  An async connection is exiting gracefully now.  {_runningTaskCount - 1} remaining.");
                 throw;
             }
             finally

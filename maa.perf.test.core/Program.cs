@@ -121,6 +121,9 @@ namespace maa.perf.test.core
                 }
             }
             Tracer.TraceInfo($"Organized shutdown complete.");
+
+            // Print out exception history
+            MaaServiceApiCaller.TraceExceptionHistory();
         }
 
         private async Task RampUpAsync(TestRunInfo testRunInfo)

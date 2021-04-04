@@ -8,10 +8,30 @@ namespace maa.perf.test.core.Maa
 {
     public class MaaServiceApiCaller
     {
+        private static Dictionary<string, long> _exceptionHistory = new Dictionary<string, long>();
         private ApiInfo _apiInfo;
         private List<WeightedAttestationProvidersInfo> _weightedProviders;
         private EnclaveInfo _enclaveInfo;
         private bool _forceReconnects;
+
+        public static void TraceExceptionHistory()
+        {
+            lock (_exceptionHistory)
+            {
+                if (_exceptionHistory.Count == 0)
+                {
+                    Tracer.TraceInfo("Exception Summary: No exceptions encountered");
+                }
+                else
+                {
+                    Tracer.TraceWarning($"Exception Summary: {_exceptionHistory.Count} different types of exceptions encountered!");
+                    foreach (var x in _exceptionHistory)
+                    {
+                        Tracer.TraceWarning($"{x.Value,10} : {x.Key}");
+                    }
+                }
+            }
+        }
 
         public MaaServiceApiCaller(ApiInfo apiInfo, List<WeightedAttestationProvidersInfo> weightedProviders, string enclaveInfoFileName, bool forceReconnects)
         {
@@ -103,9 +123,27 @@ namespace maa.perf.test.core.Maa
                 var result = await callServiceAsync();
                 return result;
             }
+            // Intentionally swallow all exceptions here since we never want to cause
+            // an exception accessing the MAA service to cause the AsyncFor task to 
+            // stop scheduling new requests in the future.  IOW, if there are MAA 
+            // failures, we note them and resiliently keep trying in the future.
+            // "Note them" means:
+            //   * we log the exception to the console
+            //   * we report the exception summary when the application ends
             catch (Exception x)
             {
                 Tracer.TraceError($"Exception caught: {x.ToString()}");
+                lock (_exceptionHistory)
+                {
+                    if (_exceptionHistory.ContainsKey(x.Message))
+                    {
+                        _exceptionHistory[x.Message]++;
+                    }
+                    else
+                    {
+                        _exceptionHistory[x.Message] = 1;
+                    }
+                }
             }
 
             return await Task.FromResult(new MaaService.MaaResponse());

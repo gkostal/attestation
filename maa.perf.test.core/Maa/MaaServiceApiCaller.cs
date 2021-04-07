@@ -131,11 +131,13 @@ namespace maa.perf.test.core.Maa
         #region api-version 2018-09-01-preview
         private async Task<MaaService.MaaResponse> AttestVsmEnclaveAsync(MaaService maaService)
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            await Task.Run(() => throw new NotImplementedException($"{GetMyName()}"));
+            return default(MaaService.MaaResponse);
         }
         private async Task<MaaService.MaaResponse> AttestVbsEnclaveAsync(MaaService maaService)
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            await Task.Run(() => throw new NotImplementedException($"{GetMyName()}"));
+            return default(MaaService.MaaResponse);
         }
         private async Task<MaaService.MaaResponse> AttestTeeSgxEnclaveAsync(MaaService maaService)
         {
@@ -147,11 +149,13 @@ namespace maa.perf.test.core.Maa
         }
         private async Task<MaaService.MaaResponse> AttestTeeVsmEnclaveAsync(MaaService maaService)
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            await Task.Run(() => throw new NotImplementedException($"{GetMyName()}"));
+            return default(MaaService.MaaResponse);
         }
         private async Task<MaaService.MaaResponse> AttestTeeVbsEnclaveAsync(MaaService maaService)
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            await Task.Run(() => throw new NotImplementedException($"{GetMyName()}"));
+            return default(MaaService.MaaResponse);
         }
         #endregion
 
@@ -162,11 +166,12 @@ namespace maa.perf.test.core.Maa
         }
         private async Task<MaaService.MaaResponse> AttestSevSnpVmAsync(MaaService maaService)
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            return await WrapServiceCallAsync(async () => await maaService.AttestSevSnpVmAsync(Maa.Ga.AttestSevSnpRequestBody.CreateFromFile(".\\quotes\\sevsnpvm.report.info.sample.json")));
         }
         private async Task<MaaService.MaaResponse> AttestTpmAsync(MaaService maaService)
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            await Task.Run(() => throw new NotImplementedException($"{GetMyName()}"));
+            return default(MaaService.MaaResponse);
         }
         #endregion
 

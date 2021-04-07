@@ -87,11 +87,13 @@ namespace maa.perf.test.core.Maa
         }
         public async Task<MaaResponse> AttestVsmEnclaveAsync()
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            await Task.Run(() => throw new NotImplementedException($"{GetMyName()}"));
+            return default(MaaResponse);
         }
         public async Task<MaaResponse> AttestVbsEnclaveAsync()
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            await Task.Run(() => throw new NotImplementedException($"{GetMyName()}"));
+            return default(MaaResponse);
         }
         public async Task<MaaResponse> AttestTeeSgxEnclaveAsync(Preview.AttestTeeSgxEnclaveRequestBody requestBody)
         {
@@ -103,11 +105,13 @@ namespace maa.perf.test.core.Maa
         }
         public async Task<MaaResponse> AttestTeeVsmEnclaveAsync()
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            await Task.Run(() => throw new NotImplementedException($"{GetMyName()}"));
+            return default(MaaResponse);
         }
         public async Task<MaaResponse> AttestTeeVbsEnclaveAsync()
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            await Task.Run(() => throw new NotImplementedException($"{GetMyName()}"));
+            return default(MaaResponse);
         }
         #endregion
 
@@ -120,13 +124,14 @@ namespace maa.perf.test.core.Maa
         {
             return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
         }
-        public async Task<MaaResponse> AttestSevSnpVmAsync()
+        public async Task<MaaResponse> AttestSevSnpVmAsync(Ga.AttestSevSnpRequestBody requestBody)
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/SevSnpVm?api-version=2020-10-01", requestBody);
         }
         public async Task<MaaResponse> AttestTpmAsync()
         {
-            throw new NotImplementedException($"{GetMyName()}");
+            await Task.Run(() => throw new NotImplementedException($"{GetMyName()}"));
+            return default(MaaResponse);
         }
         #endregion
 
@@ -147,7 +152,6 @@ namespace maa.perf.test.core.Maa
             }
 
             // Send request
-            Tracer.TraceInfo($"GET URI: {request.RequestUri.ToString()}");
             var response = await MyHttpClient.SendAsync(request);
 
             // Analyze failures
@@ -176,7 +180,6 @@ namespace maa.perf.test.core.Maa
             }
 
             // Send request
-            Tracer.TraceInfo($"POST URI: {request.RequestUri.ToString()}");
             var response = await MyHttpClient.SendAsync(request);
 
             // Analyze failures

@@ -289,9 +289,8 @@ namespace maa.perf.test.core.Utils
             }
             catch (OperationCanceledException)
             {
-                Tracer.TraceInfo(
-                    $"Organized shutdown in progress.  An async connection is exiting gracefully now.  {_runningTaskCount - 1} remaining.");
-                throw;
+                // Don't throw exception when cancelled, just exit silently
+                Tracer.TraceInfo($"Organized shutdown in progress.  An async connection is exiting gracefully now.  {_runningTaskCount - 1} remaining.");
             }
             finally
             {

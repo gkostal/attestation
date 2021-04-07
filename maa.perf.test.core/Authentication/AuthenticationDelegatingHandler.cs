@@ -32,6 +32,7 @@ namespace maa.perf.test.core.Authentication
             string aadTenant;
             string accessToken;
             string transformedHostName = TransformHostName(request.RequestUri.Host);
+            bool tokenIncluded = false;
 
             // If we know the tenant for the attestation provider and already have an access token, 
             // just include it!
@@ -42,6 +43,7 @@ namespace maa.perf.test.core.Authentication
                 if (accessToken != null)
                 {
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                    tokenIncluded = true;
                 }
             }
 
@@ -60,7 +62,7 @@ namespace maa.perf.test.core.Authentication
                 SerializationHelper.WriteToFile(TenantLookupFileName, TenantLookup);
 
                 // Authenticate with AAD and set bearer token
-                accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant, true, false);
+                accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant, tokenIncluded, false);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
                 // Retry one time

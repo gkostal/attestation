@@ -19,6 +19,7 @@ namespace maa.perf.test.core
     {
         private readonly Options _options;
         private MixInfo _mixInfo;
+        private Kaboom _kaboom;
         private readonly List<AsyncFor> _asyncForInstances = new List<AsyncFor>();
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
@@ -209,6 +210,12 @@ namespace maa.perf.test.core
 
             // Instead, tell all asyncfor tasks to cancel their work now
             _cancellationTokenSource.Cancel();
+
+            // Don't wait longer than 10 seconds
+            if (_kaboom == null)
+            {
+                _kaboom = new Kaboom(TimeSpan.FromSeconds(10), false);
+            }
         }
     }
 }

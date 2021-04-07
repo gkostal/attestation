@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,10 +12,9 @@ namespace maa.perf.test.core.Authentication
 {
     public class AuthenticationDelegatingHandler : DelegatingHandler
     {
-        private readonly Dictionary<string, bool> UriAuthRequiredLookup;
         private readonly Dictionary<string, string> TenantLookup;
         private const string TenantLookupFileName = "tenantlookup.bin";
-        private const string UriLookupFileName = "urilookup.bin";
+        private const string ProviderDnsNameRegEx = @"((\D+\d*\D+)\d+[.]?)(.*)";
 
         public AuthenticationDelegatingHandler()
             : base(new SocketsHttpHandler
@@ -25,25 +25,24 @@ namespace maa.perf.test.core.Authentication
             })
         {
             TenantLookup = SerializationHelper.ReadFromFile<Dictionary<string, string>>(TenantLookupFileName);
-            UriAuthRequiredLookup = SerializationHelper.ReadFromFile<Dictionary<string, bool>>(UriLookupFileName);
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             string aadTenant;
             string accessToken;
-            string hostName = request.RequestUri.Host;
-            string requestUri = request.RequestUri.AbsoluteUri;
-            bool authenticationRequired = UriAuthRequiredLookup.ContainsKey(requestUri) && UriAuthRequiredLookup[requestUri];
-            bool bearerTokenIncluded = false;
+            string transformedHostName = TransformHostName(request.RequestUri.Host);
 
-            // Get access token if auth is required and we already know the tenant for the attestation provider
-            if (authenticationRequired && TenantLookup.ContainsKey(hostName))
+            // If we know the tenant for the attestation provider and already have an access token, 
+            // just include it!
+            if (TenantLookup.ContainsKey(transformedHostName))
             {
-                aadTenant = TenantLookup[hostName];
-                accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant, false);
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                bearerTokenIncluded = true;
+                aadTenant = TenantLookup[transformedHostName];
+                accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant, false, true);
+                if (accessToken != null)
+                {
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                }
             }
 
             // Call service
@@ -55,34 +54,17 @@ namespace maa.perf.test.core.Authentication
             // So, take note of current AAD tenant value, re-authenticate and retry
             if ((response.StatusCode == System.Net.HttpStatusCode.Unauthorized))
             {
-                // Remember that authentication is required for this URI
-                UriAuthRequiredLookup[requestUri] = true;
-                SerializationHelper.WriteToFile(UriLookupFileName, UriAuthRequiredLookup);
-
                 // Always record AAD tenant for hostname (in edge cases it can move)
                 aadTenant = ParseAadTenant(response.Headers.GetValues("WWW-Authenticate").FirstOrDefault());
-                TenantLookup[hostName] = aadTenant;
+                TenantLookup[transformedHostName] = aadTenant;
                 SerializationHelper.WriteToFile(TenantLookupFileName, TenantLookup);
 
                 // Authenticate with AAD and set bearer token
-                accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant, true);
+                accessToken = await Authentication.AcquireAccessTokenAsync(aadTenant, true, false);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                bearerTokenIncluded = true;
 
                 // Retry one time
                 response = await base.SendAsync(request, cancellationToken);
-            }
-
-            // If we succeeded without authentication, ensure that we remember that authentication
-            // is not required for this URI
-            if (response.IsSuccessStatusCode && !bearerTokenIncluded)
-            {
-                if (!UriAuthRequiredLookup.ContainsKey(requestUri) || UriAuthRequiredLookup[requestUri])
-                {
-                    // Remember that authentication is NOT required for this URI
-                    UriAuthRequiredLookup[request.RequestUri.AbsoluteUri] = false;
-                    SerializationHelper.WriteToFile(UriLookupFileName, UriAuthRequiredLookup);
-                }
             }
 
             return response;
@@ -98,6 +80,20 @@ namespace maa.perf.test.core.Authentication
             var endIndex = headerValue.IndexOf(endString, startIndex);
 
             return headerValue.Substring(startIndex, endIndex - startIndex);
+        }
+
+        private string TransformHostName(string hostName)
+        {
+            // aaa000.wus.attest.azure.net is considered to have the same AAD tenant as aaa111.wus.attest.azure.net
+            if (!hostName.Equals("localhost", StringComparison.InvariantCultureIgnoreCase))
+            {
+                var pre = Regex.Match(hostName, ProviderDnsNameRegEx);
+                var dnsNameBase = pre.Groups[2].Value;
+                var dnsSubDomain = $".{pre.Groups[3].Value}";
+                return $"{dnsNameBase}{dnsSubDomain}";
+            }
+
+            return hostName;
         }
     }
 }

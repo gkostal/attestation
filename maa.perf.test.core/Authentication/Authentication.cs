@@ -3,6 +3,7 @@ using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace maa.perf.test.core.Authentication
@@ -15,36 +16,23 @@ namespace maa.perf.test.core.Authentication
 
         private const string AcceleratedTokenCacheFileName = "acceleratedcache.bin";
         private static Dictionary<string, string> _acceleratedCache;
-        private static object _lock = new object();
-        private static bool _processingInFlight = false;
+        private static SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
         static Authentication()
         {
             _acceleratedCache = SerializationHelper.ReadFromFile<Dictionary<string, string>>(AcceleratedTokenCacheFileName);
         }
 
-        public static async Task<string> AcquireAccessTokenAsync(string tenant, bool forceRefresh)
+        public static async Task<string> AcquireAccessTokenAsync(string tenant, bool forceRefresh, bool noUiPrompt)
         {
             string accessToken = null;
-            bool okToProcess = false;
 
+            // Only perform one authentication at a time!
+            await _semaphore.WaitAsync();
+
+            // Go go!
             try
             {
-                while (!okToProcess)
-                {
-                    lock (_lock)
-                    {
-                        if (!_processingInFlight)
-                        {
-                            okToProcess = true;
-                            _processingInFlight = true;
-                        }
-                    }
-
-                    if (!_processingInFlight)
-                        await Task.Delay(TimeSpan.FromMilliseconds(100));
-                }
-
                 if (!forceRefresh && _acceleratedCache.ContainsKey(tenant))
                 {
                     accessToken = _acceleratedCache[tenant];
@@ -56,38 +44,36 @@ namespace maa.perf.test.core.Authentication
                         .WithDefaultRedirectUri()
                         .Build();
 
-                    AuthenticationResult result;
+                    AuthenticationResult result = null;
                     try
                     {
                         var accounts = await publicApplication.GetAccountsAsync();
-                        Tracer.TraceInfo($"Authentication: Number of accounts: {accounts?.Count()}");
                         result = await publicApplication
                             .AcquireTokenSilent(scopes, accounts.FirstOrDefault())
                             .ExecuteAsync();
                     }
                     catch (MsalUiRequiredException ex)
                     {
-                        result = await publicApplication
-                            .AcquireTokenInteractive(scopes)
-                            .WithClaims(ex.Claims)
-                            .ExecuteAsync();
+                        if (!noUiPrompt)
+                        {
+                            result = await publicApplication
+                                .AcquireTokenInteractive(scopes)
+                                .WithClaims(ex.Claims)
+                                .ExecuteAsync();
+                        }
                     }
 
-                    accessToken = result.AccessToken;
-                    _acceleratedCache[tenant] = accessToken;
-                    SerializationHelper.WriteToFile(AcceleratedTokenCacheFileName, _acceleratedCache);
+                    if (result != null)
+                    {
+                        accessToken = result.AccessToken;
+                        _acceleratedCache[tenant] = accessToken;
+                        SerializationHelper.WriteToFile(AcceleratedTokenCacheFileName, _acceleratedCache);
+                    }
                 }
             }
             finally
             {
-                if (okToProcess)
-                {
-                    lock (_lock)
-                    {
-                        _processingInFlight = false;
-                        okToProcess = false;
-                    }
-                }
+                _semaphore.Release();
             }
 
             return accessToken;

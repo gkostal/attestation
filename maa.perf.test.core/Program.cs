@@ -38,7 +38,7 @@ namespace maa.perf.test.core
             _options = options;
             if ((string.IsNullOrEmpty(_options.MixFileName)) && (_options.RestApi == Api.None))
             {
-                _options.RestApi = Api.AttestSgx;
+                _options.RestApi = Api.AttestSgxEnclave;
             }
 
             Tracer.CurrentTracingLevel = _options.Verbose ? TracingLevel.Verbose : TracingLevel.Info;

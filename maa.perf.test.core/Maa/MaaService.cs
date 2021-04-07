@@ -65,36 +65,70 @@ namespace maa.perf.test.core.Maa
             //Tracer.TraceVerbose($"MaaService constructor - force reconnect flag == {_connectionInfo.ForceReconnects}");
         }
 
-        public async Task<MaaResponse> AttestOpenEnclaveAsync(Preview.AttestOpenEnclaveRequestBody requestBody)
+        #region api-version both
+        public async Task<MaaResponse> GetOpenIdConfigurationAsync(ApiVersion apiVersion)
+        {
+            return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/.well-known/openid-configuration?api-version={apiVersion.Resolve()}");
+        }
+        public async Task<MaaResponse> GetCertsAsync(ApiVersion apiVersion)
+        {
+            return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/certs?api-version={apiVersion.Resolve()}");
+        }
+        public async Task<MaaResponse> GetServiceHealthAsync(ApiVersion apiVersion)
+        {
+            return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/servicehealth?api-version={apiVersion.Resolve()}");
+        }
+        #endregion
+
+        #region api-version 2018-09-01-preview
+        public async Task<MaaResponse> AttestSgxEnclaveAsync(Preview.AttestSgxEnclaveRequestBody requestBody)
+        {
+            return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/SgxEnclave?api-version=2018-09-01-preview", requestBody);
+        }
+        public async Task<MaaResponse> AttestVsmEnclaveAsync()
+        {
+            throw new NotImplementedException($"{GetMyName()}");
+        }
+        public async Task<MaaResponse> AttestVbsEnclaveAsync()
+        {
+            throw new NotImplementedException($"{GetMyName()}");
+        }
+        public async Task<MaaResponse> AttestTeeSgxEnclaveAsync(Preview.AttestTeeSgxEnclaveRequestBody requestBody)
+        {
+            return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/Tee/SgxEnclave?api-version=2018-09-01-preview", requestBody);
+        }
+        public async Task<MaaResponse> AttestTeeOpenEnclaveAsync(Preview.AttestTeeOpenEnclaveRequestBody requestBody)
         {
             return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/Tee/OpenEnclave?api-version=2018-09-01-preview", requestBody);
         }
-
-        //2020-10-01
-        public async Task<MaaResponse> AttestOpenEnclaveAsync(Ga.AttestOpenEnclaveRequestBody requestBody)
+        public async Task<MaaResponse> AttestTeeVsmEnclaveAsync()
         {
-            return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
+            throw new NotImplementedException($"{GetMyName()}");
         }
+        public async Task<MaaResponse> AttestTeeVbsEnclaveAsync()
+        {
+            throw new NotImplementedException($"{GetMyName()}");
+        }
+        #endregion
 
+        #region api-version 2020-10-01
         public async Task<MaaResponse> AttestSgxEnclaveAsync(Ga.AttestSgxEnclaveRequestBody requestBody)
         {
             return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/SgxEnclave?api-version=2020-10-01", requestBody);
         }
-
-        public async Task<MaaResponse> GetOpenIdConfigurationAsync()
+        public async Task<MaaResponse> AttestOpenEnclaveAsync(Ga.AttestOpenEnclaveRequestBody requestBody)
         {
-            return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/.well-known/openid-configuration?api-version=2020-10-01");
+            return await DoPostAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/attest/OpenEnclave?api-version=2020-10-01", requestBody);
         }
-
-        public async Task<MaaResponse> GetCertsAsync()
+        public async Task<MaaResponse> AttestSevSnpVmAsync()
         {
-            return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/certs?api-version=2020-10-01");
+            throw new NotImplementedException($"{GetMyName()}");
         }
-
-        public async Task<MaaResponse> GetServiceHealthAsync()
+        public async Task<MaaResponse> AttestTpmAsync()
         {
-            return await DoGetAsync($"{_uriScheme}://{_connectionInfo.DnsName}:{_servicePort}/servicehealth?api-version=2020-10-01");
+            throw new NotImplementedException($"{GetMyName()}");
         }
+        #endregion
 
         public async Task<MaaResponse> GetUrlAsync(string url)
         {
@@ -113,6 +147,7 @@ namespace maa.perf.test.core.Maa
             }
 
             // Send request
+            Tracer.TraceInfo($"GET URI: {request.RequestUri.ToString()}");
             var response = await MyHttpClient.SendAsync(request);
 
             // Analyze failures
@@ -141,6 +176,7 @@ namespace maa.perf.test.core.Maa
             }
 
             // Send request
+            Tracer.TraceInfo($"POST URI: {request.RequestUri.ToString()}");
             var response = await MyHttpClient.SendAsync(request);
 
             // Analyze failures
@@ -169,5 +205,9 @@ namespace maa.perf.test.core.Maa
             return perfInfo;
         }
 
+        private static string GetMyName([CallerMemberName] string me = null)
+        {
+            return me;
+        }
     }
 }

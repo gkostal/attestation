@@ -51,7 +51,7 @@ namespace maa.perf.test.core.Model
         public string EnclaveInfoFile { get; set; }
 
         // API info
-        [Option('a', "api", Required = false, HelpText = "REST Api to test: {AttestSgx, AttestOpenEnclave, GetOpenIdConfiguration, GetCerts, GetServiceHealth}")]
+        [Option('a', "api", Required = false, HelpText = "REST Api to test: {AttestSgx, AttestTeeOpenEnclave, AttestTeeSgxEnclave, AttestTeeVsmEnlave, AttestGetOpenIdConfiguration, GetCerts, GetServiceHealth}")]
         public Api RestApi { get; set; }
 
         [Option('w', "previewapiversion", Required = false, HelpText = "Use preview api-version instead of GA")]

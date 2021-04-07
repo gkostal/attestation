@@ -2,6 +2,7 @@ using maa.perf.test.core.Model;
 using maa.perf.test.core.Utils;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace maa.perf.test.core.Maa
@@ -9,6 +10,7 @@ namespace maa.perf.test.core.Maa
     public class MaaServiceApiCaller
     {
         private static Dictionary<string, long> _exceptionHistory = new Dictionary<string, long>();
+        private Dictionary<Api, Func<MaaService, Task<MaaService.MaaResponse>>> _apiMapping;
         private ApiInfo _apiInfo;
         private List<WeightedAttestationProvidersInfo> _weightedProviders;
         private EnclaveInfo _enclaveInfo;
@@ -39,6 +41,22 @@ namespace maa.perf.test.core.Maa
             _weightedProviders = weightedProviders;
             _enclaveInfo = EnclaveInfo.CreateFromFile(enclaveInfoFileName);
             _forceReconnects = forceReconnects;
+            _apiMapping = new Dictionary<Api, Func<MaaService, Task<MaaService.MaaResponse>>>
+            {
+                {  Api.AttestSgxEnclave, AttestSgxEnclaveAsync },
+                {  Api.AttestVsmEnclave, AttestVsmEnclaveAsync },
+                {  Api.AttestVbsEnclave, AttestVbsEnclaveAsync },
+                {  Api.AttestTeeSgxEnclave, AttestTeeSgxEnclaveAsync },
+                {  Api.AttestTeeOpenEnclave, AttestTeeOpenEnclaveAsync },
+                {  Api.AttestTeeVsmEnclave, AttestTeeVsmEnclaveAsync },
+                {  Api.AttestTeeVbsEnclave, AttestTeeVbsEnclaveAsync },
+                {  Api.AttestOpenEnclave, AttestOpenEnclaveAsync },
+                {  Api.AttestSevSnpVm, AttestSevSnpVmAsync },
+                {  Api.AttestTpm, AttestTpmAsync },
+                {  Api.GetCerts, GetCertsAsync },
+                {  Api.GetOpenIdConfiguration, GetOpenIdConfigurationAsync },
+                {  Api.GetServiceHealth, GetServiceHealthAsync },
+            };
         }
 
         public async Task<PerformanceInformation> CallApi()
@@ -81,35 +99,76 @@ namespace maa.perf.test.core.Maa
             return new MaaService(maaConnectionInfo);
         }
 
-        private async Task<MaaService.MaaResponse> CallAttestOpenEnclavePreviewAsync(MaaService maaService)
+        #region api-version both
+        private async Task<MaaService.MaaResponse> AttestSgxEnclaveAsync(MaaService maaService)
         {
-            return await WrapServiceCallAsync(async () => await maaService.AttestOpenEnclaveAsync(new Maa.Preview.AttestOpenEnclaveRequestBody(_enclaveInfo)));
+            if (_apiInfo.UsePreviewApi)
+            {
+                return await WrapServiceCallAsync(async () => await maaService.AttestSgxEnclaveAsync(new Maa.Preview.AttestSgxEnclaveRequestBody(_enclaveInfo)));
+            }
+            else
+            {
+                return await WrapServiceCallAsync(async () => await maaService.AttestSgxEnclaveAsync(new Maa.Ga.AttestSgxEnclaveRequestBody(_enclaveInfo)));
+            }
         }
+        private async Task<MaaService.MaaResponse> GetCertsAsync(MaaService maaService)
+        {
+            ApiVersion apiVersion = _apiInfo.UsePreviewApi ? ApiVersion.Preview : ApiVersion.GA;
+            return await WrapServiceCallAsync(async () => await maaService.GetCertsAsync(apiVersion));
+        }
+        private async Task<MaaService.MaaResponse> GetOpenIdConfigurationAsync(MaaService maaService)
+        {
+            ApiVersion apiVersion = _apiInfo.UsePreviewApi ? ApiVersion.Preview : ApiVersion.GA;
+            return await WrapServiceCallAsync(async () => await maaService.GetOpenIdConfigurationAsync(apiVersion));
+        }
+        private async Task<MaaService.MaaResponse> GetServiceHealthAsync(MaaService maaService)
+        {
+            ApiVersion apiVersion = _apiInfo.UsePreviewApi ? ApiVersion.Preview : ApiVersion.GA;
+            return await WrapServiceCallAsync(async () => await maaService.GetServiceHealthAsync(apiVersion));
+        }
+        #endregion
 
-        private async Task<MaaService.MaaResponse> CallAttestOpenEnclaveGaAsync(MaaService maaService)
+        #region api-version 2018-09-01-preview
+        private async Task<MaaService.MaaResponse> AttestVsmEnclaveAsync(MaaService maaService)
+        {
+            throw new NotImplementedException($"{GetMyName()}");
+        }
+        private async Task<MaaService.MaaResponse> AttestVbsEnclaveAsync(MaaService maaService)
+        {
+            throw new NotImplementedException($"{GetMyName()}");
+        }
+        private async Task<MaaService.MaaResponse> AttestTeeSgxEnclaveAsync(MaaService maaService)
+        {
+            return await WrapServiceCallAsync(async () => await maaService.AttestTeeSgxEnclaveAsync(new Maa.Preview.AttestTeeSgxEnclaveRequestBody(_enclaveInfo)));
+        }
+        private async Task<MaaService.MaaResponse> AttestTeeOpenEnclaveAsync(MaaService maaService)
+        {
+            return await WrapServiceCallAsync(async () => await maaService.AttestTeeOpenEnclaveAsync(new Maa.Preview.AttestTeeOpenEnclaveRequestBody(_enclaveInfo)));
+        }
+        private async Task<MaaService.MaaResponse> AttestTeeVsmEnclaveAsync(MaaService maaService)
+        {
+            throw new NotImplementedException($"{GetMyName()}");
+        }
+        private async Task<MaaService.MaaResponse> AttestTeeVbsEnclaveAsync(MaaService maaService)
+        {
+            throw new NotImplementedException($"{GetMyName()}");
+        }
+        #endregion
+
+        #region api-version 2020-10-01
+        private async Task<MaaService.MaaResponse> AttestOpenEnclaveAsync(MaaService maaService)
         {
             return await WrapServiceCallAsync(async () => await maaService.AttestOpenEnclaveAsync(new Maa.Ga.AttestOpenEnclaveRequestBody(_enclaveInfo)));
         }
-
-        private async Task<MaaService.MaaResponse> CallAttestSgxEnclaveGaAsync(MaaService maaService)
+        private async Task<MaaService.MaaResponse> AttestSevSnpVmAsync(MaaService maaService)
         {
-            return await WrapServiceCallAsync(async () => await maaService.AttestSgxEnclaveAsync(new Maa.Ga.AttestSgxEnclaveRequestBody(_enclaveInfo)));
+            throw new NotImplementedException($"{GetMyName()}");
         }
-
-        private async Task<MaaService.MaaResponse> GetCertsAsync(MaaService maaService)
+        private async Task<MaaService.MaaResponse> AttestTpmAsync(MaaService maaService)
         {
-            return await WrapServiceCallAsync(async () => await maaService.GetCertsAsync());
+            throw new NotImplementedException($"{GetMyName()}");
         }
-
-        private async Task<MaaService.MaaResponse> GetOpenIdConfigurationAsync(MaaService maaService)
-        {
-            return await WrapServiceCallAsync(async () => await maaService.GetOpenIdConfigurationAsync());
-        }
-
-        private async Task<MaaService.MaaResponse> GetServiceHealthAsync(MaaService maaService)
-        {
-            return await WrapServiceCallAsync(async () => await maaService.GetServiceHealthAsync());
-        }
+        #endregion
 
         private async Task<MaaService.MaaResponse> GetUrlAsync(MaaService maaService)
         {
@@ -153,29 +212,20 @@ namespace maa.perf.test.core.Maa
         {
             if (string.IsNullOrEmpty(_apiInfo.Url))
             {
-                switch (_apiInfo.ApiName)
+                lock (_apiMapping)
                 {
-                    case Api.AttestOpenEnclave:
-                        if (_apiInfo.UsePreviewApi)
-                            return CallAttestOpenEnclavePreviewAsync;
-                        else
-                            return CallAttestOpenEnclaveGaAsync;
-                    case Api.AttestSgx:
-                        return CallAttestSgxEnclaveGaAsync;
-                    case Api.GetCerts:
-                        return GetCertsAsync;
-                    case Api.GetOpenIdConfiguration:
-                        return GetOpenIdConfigurationAsync;
-                    case Api.GetServiceHealth:
-                        return GetServiceHealthAsync;
-                    default:
-                        return CallAttestOpenEnclaveGaAsync;
+                    return _apiMapping[_apiInfo.ApiName];
                 }
             }
             else
             {
                 return GetUrlAsync;
             }
+        }
+
+        private static string GetMyName([CallerMemberName] string me = null)
+        {
+            return me;
         }
     }
 }

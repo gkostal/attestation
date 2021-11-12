@@ -12,8 +12,12 @@ namespace AasPolicyCertificates
     {
         static void Main(string[] args)
         {
+            var numOriginalTrustedCerts = 10;
+            var numPossibleNewTrustedCerts = 20;
             var sourceDir = @"..\..\..\unsigned.data.for.test";
             var resultsDir = @"..\..\..\signed.data.for.test";
+            var rawSourceDir = @"..\..\..\raw.unsigned.data.for.test";
+            var rawResultsDir = @"..\..\..\raw.signed.data.for.test";
 
             Directory.CreateDirectory(resultsDir);
 
@@ -28,7 +32,7 @@ namespace AasPolicyCertificates
             // Generate 10 sample PEM's with a self signed certificate
             // And also one PEM file with all 10 self signed certificates
             List<X509Certificate2> mySelfSignedCerts = new List<X509Certificate2>();
-            Enumerable.Range(1, 10).ForEach(i => mySelfSignedCerts.Add(CertificateUtils.CreateCertificateAuthorityCertificate($"CN=MaaOriginalTestCert{i}")));
+            Enumerable.Range(1, numOriginalTrustedCerts).ForEach(i => mySelfSignedCerts.Add(CertificateUtils.CreateCertificateAuthorityCertificate($"CN=MaaOriginalTestCert{i}")));
 
             var firstCert = mySelfSignedCerts[0];
             var signingCert = new List<X509Certificate2>() { firstCert }.ToArray();
@@ -40,7 +44,7 @@ namespace AasPolicyCertificates
             File.WriteAllText($"{resultsDir}\\signing.cert.pem", CertificateUtils.GeneratePem(firstCert));
 
             // Create 20 additional signed certificates to add and remove
-            Enumerable.Range(1, 20).ForEach(i =>
+            Enumerable.Range(1, numPossibleNewTrustedCerts).ForEach(i =>
             {
                 X509Certificate2 cert = CertificateUtils.CreateCertificateAuthorityCertificate($"CN=MaaTestCert{i}");
 
@@ -76,12 +80,23 @@ namespace AasPolicyCertificates
                 Console.WriteLine($"Creating signed policy file: {fileInfo.Name}.signed{fileInfo.Extension}");
                 File.WriteAllText($"{resultsDir}\\{fileInfo.Name}.signed{fileInfo.Extension}", signedPolicyJwt);
             }
+
+            // Create a signed version of all raw unsigned policy files
+            foreach (var file in Directory.EnumerateFiles(rawSourceDir))
+            {
+                var fileInfo = new FileInfo(file);
+                var policy = File.ReadAllText(file);
+                policy = policy.Replace("\n", @"\n");
+                policy = policy.Replace("\r", @"\r");
+                var signedPolicyJwt = JwtUtils.GenerateSignedPolicyJsonWebToken(policy, signingCert);
+                Console.WriteLine($"Creating signed policy file: {fileInfo.Name}.signed{fileInfo.Extension}");
+                File.WriteAllText($"{rawResultsDir}\\{fileInfo.Name}.signed{fileInfo.Extension}", signedPolicyJwt);
+            }
         }
     }
 
     public static class MoreLinq
     {
-
         public static void ForEach<T>(this IEnumerable<T> source, Action<T> action)
         {
             foreach (T element in source)

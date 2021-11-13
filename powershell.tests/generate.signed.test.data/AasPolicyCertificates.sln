@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29806.167
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AasPolicyCertificates", "AasPolicyCertificates.csproj", "{A4E66615-41D8-472E-A9B9-6E227FA92E77}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "maa.signing.tool", "..\..\maa.signing.tool\maa.signing.tool.csproj", "{EE9F1DC2-9CDC-4D5A-B9D9-7EF1AF4D5EF0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{A4E66615-41D8-472E-A9B9-6E227FA92E77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A4E66615-41D8-472E-A9B9-6E227FA92E77}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A4E66615-41D8-472E-A9B9-6E227FA92E77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE9F1DC2-9CDC-4D5A-B9D9-7EF1AF4D5EF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE9F1DC2-9CDC-4D5A-B9D9-7EF1AF4D5EF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE9F1DC2-9CDC-4D5A-B9D9-7EF1AF4D5EF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE9F1DC2-9CDC-4D5A-B9D9-7EF1AF4D5EF0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -11,7 +11,7 @@ The [Microsoft Azure Attestation service](https://docs.microsoft.com/en-us/azure
 * all updates to attestation policy must be authorized by signing the request with a user managed private key
 * all updates to the set of trusted signing keys must be authorized by signing the request with a user managed private key
 
-The user must manage an X509 certificate for each private key.  To share a signed request with the MAA service, the user must use a specific JWT format as defined in the MAA documentation [here]().  The JWT format is described in great detail in [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519).
+The user must manage an X509 certificate for each private key.  To share a signed request with the MAA service, the user must use a specific JWT format as defined in the MAA documentation [here](https://docs.microsoft.com/en-us/azure/attestation/author-sign-policy#creating-the-policy-file-in-json-web-signature-format).  The JWT format is described in great detail in [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519).
 
 ## Create a signing key and certificate
 

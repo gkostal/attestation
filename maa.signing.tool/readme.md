@@ -1,6 +1,9 @@
 # Overview
 
-This project contains .NET 6 C# code for a console application that can be used to create signed JWT's to work with the MAA service when it's running in *Isolated* mode.  Since the code is written using .NET 6, it can run on Windows, Linux or a Mac.
+This project contains .NET 6 C# code for a console application that can be used to create signed JWT's to work with the MAA service when it's running in *Isolated* mode.  Since the code is written using .NET 6, it can run on Windows, Linux or a Mac. This tool supports:
+* creating a signing key and certificate
+* using a signing key + certificate to create a signed policy JWT
+* using a signing key + certificate to create a signed certificate JWT
 
 ## Background
 
@@ -143,7 +146,7 @@ eyAiYWxnIjoiUlMyNTYiLCAieDVjIjogWyJNSUlEUlRDQ0FpMmdBd0lCQWdJVURWMW43aUc2MDF3ckdL
 To upload the signed certificate JWT, you can use the PowerShell `Add-AzAttesationPolicySigner` cmdlet.  Note that after the operation completes, there are now 2 trusted signing certificates.
 
 ```PowerShell
-PS C:\src\github\gkostal\attestation\maa.signing.tool> Add-AzAttestationPolicySigner -ResourceGroupName gnkdemo -Name isolatedtest001 -Signer (Get-Content -Path .\my.signed.cert.txt -Raw)
+PS C:\src\attestation\maa.signing.tool> Add-AzAttestationPolicySigner -ResourceGroupName gnkdemo -Name isolatedtest001 -Signer (Get-Content -Path .\my.signed.cert.txt -Raw)
 
 
 CertificateCount : 2

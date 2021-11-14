@@ -85,7 +85,7 @@ eyAiYWxnIjoiUlMyNTYiLCAieDVjIjogWyJNSUlEUlRDQ0FpMmdBd0lCQWdJVURWMW43aUc2MDF3ckdL
 
 ## Update MAA using signed policy JWT
 
-To upload the signed policy JWT, you can use the PowerShell `Set-AzAttesationPolicy` cmdlet:
+To upload the signed policy JWT, you can use the PowerShell `Set-AzAttestationPolicy` cmdlet:
 
 ```PowerShell
 PS C:\src\attestation\maa.signing.tool> Set-AzAttestationPolicy -ResourceGroupName gnkdemo -Name isolatedtest001 -Tee OpenEnclave -PolicyFormat JWT -Policy (Get-Content -Path .\my.signed.policy.txt -Raw)
@@ -143,7 +143,7 @@ eyAiYWxnIjoiUlMyNTYiLCAieDVjIjogWyJNSUlEUlRDQ0FpMmdBd0lCQWdJVURWMW43aUc2MDF3ckdL
 
 ## Update MAA using signed certificate JWT
 
-To upload the signed certificate JWT, you can use the PowerShell `Add-AzAttesationPolicySigner` cmdlet.  Note that after the operation completes, there are now 2 trusted signing certificates.
+To upload the signed certificate JWT, you can use the PowerShell `Add-AzAttestationPolicySigner` cmdlet.  Note that after the operation completes, there are now 2 trusted signing certificates.
 
 ```PowerShell
 PS C:\src\attestation\maa.signing.tool> Add-AzAttestationPolicySigner -ResourceGroupName gnkdemo -Name isolatedtest001 -Signer (Get-Content -Path .\my.signed.cert.txt -Raw)

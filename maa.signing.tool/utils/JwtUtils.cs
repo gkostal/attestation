@@ -1,11 +1,10 @@
+using Newtonsoft.Json;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+
 namespace maa.signing.tool.utils
 {
-    using System;
-    using System.Security.Cryptography;
-    using System.Security.Cryptography.X509Certificates;
-    using System.Text;
-    using Newtonsoft.Json;
-
     public class JwtUtils
     {
         public static string GenerateSignedPolicyJsonWebToken(string policy, RSA signingKey, X509Certificate2 signingCert)

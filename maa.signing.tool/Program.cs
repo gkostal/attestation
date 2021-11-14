@@ -1,7 +1,7 @@
-﻿using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using CommandLine;
+﻿using CommandLine;
 using maa.signing.tool.utils;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 
 namespace maa.signing.tool
 {
@@ -37,7 +37,7 @@ namespace maa.signing.tool
             ValidateFileExists(options.PolicyFileName, "Policy file is not accessable");
             var policy = File.ReadAllText(options.PolicyFileName);
             Tracer.TraceVerbose($"Policy to be signed = \n{policy}\n");
-            
+
             // Sign policy
             var policyJwt = JwtUtils.GenerateSignedPolicyJsonWebToken(policy, signingKey, signingCert);
             Tracer.TraceVerbose($"Generated signed JWT = \n{JwtUtils.FormatJwt(policyJwt)}\n");
@@ -85,7 +85,7 @@ namespace maa.signing.tool
             Console.WriteLine();
             Console.WriteLine($"To create a signing key and certificate files follow these steps:");
             Console.WriteLine();
-            Console.WriteLine($"    1. Locate an environment with access to the openssl tool (e.g. GitBash shell)");
+            Console.WriteLine($"    1. Locate an environment with access to the openssl tool (e.g. WSL shell, Linux Bash)");
             Console.WriteLine();
             Console.WriteLine($"    2. Switch to a directory where you will store the two generated files");
             Console.WriteLine();

@@ -1,7 +1,5 @@
 ﻿namespace maa.signing.tool.utils
 {
-    using System;
-
     /// <summary>
     /// Converts to/from Base64URL encoding, per http://www.rfc-editor.org/rfc/rfc4648.txt.
     /// </summary>

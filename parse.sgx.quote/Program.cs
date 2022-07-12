@@ -11,20 +11,27 @@ namespace ParseSgxQuote
 
         public void Run()
         {
-            var b = ReadAllBytes("./sample.quotes/sgx.successful.quote.bin");
-            var q = new SgxQuote(b);
-            Console.WriteLine($"{q}");
-
-            b = ReadAllBytes("./sample.quotes/sgx.failed.quote.bin");
-            q = new SgxQuote(b);
-            Console.WriteLine($"{q}");
-
-            b = ReadAllBytes("./sample.quotes/oe.maa.scus.test.quote.bin");
-            q = new SgxQuote(b);
-            Console.WriteLine($"{q}");
+            DumpSgxQuote("./sample.quotes/sgx.successful.quote.bin");
+            DumpSgxQuote("./sample.quotes/sgx.failed.quote.bin");
+            DumpSgxQuote("./sample.quotes/oe.maa.scus.test.quote.bin");
+            DumpSgxQuote("./sample.quotes/sgx.quote.2022.07.12.11.46.35.bin");
         }
 
-        public byte[] ReadAllBytes(string path)
+        private void DumpSgxQuote(string filePath)
+        {
+            var b = ReadAllBytes(filePath);
+            var q = new SgxQuote(b);
+
+            Console.WriteLine();
+            Console.WriteLine("**************************************************************************************************");
+            Console.WriteLine();
+            Console.WriteLine($"FileName: {filePath}");
+            Console.WriteLine($"{q}");
+            Console.WriteLine("**************************************************************************************************");
+            Console.WriteLine();
+        }
+
+        private byte[] ReadAllBytes(string path)
         {
             using (var f = File.OpenRead(path))
             {

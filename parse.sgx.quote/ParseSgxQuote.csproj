@@ -18,6 +18,9 @@
     <None Update="sample.quotes\sgx.failed.quote.bin">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="sample.quotes\sgx.quote.2022.07.12.11.46.35.bin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="sample.quotes\sgx.successful.quote.bin">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

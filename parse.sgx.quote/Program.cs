@@ -17,6 +17,20 @@ namespace ParseSgxQuote
             DumpSgxQuote("./sample.quotes/sgx.quote.2022.07.12.11.46.35.bin");
         }
 
+        public void Run2()
+        {
+            Console.WriteLine(GenerateCString("./sample.quotes/sgx.successful.quote.bin", "goodQuote"));
+            Console.WriteLine(GenerateCString("./sample.quotes/sgx.failed.quote.bin", "badQuote"));
+        }
+
+        private string GenerateCString (string filePath, string variableName)
+        {
+            var q = ReadAllBytes(filePath);
+            var qq = string.Join(",", q);
+
+            return $"static unsigned char {variableName}[] = {{{qq}}};";
+        }
+
         private void DumpSgxQuote(string filePath)
         {
             var b = ReadAllBytes(filePath);

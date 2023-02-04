@@ -14,8 +14,10 @@ This project contains a simple ASP.NET Core web service with a single HTML page 
 
 In Visual Studio:
 
-* launch the app using the "Trusted Referer" configuration, which runs locally at port 44300
+* launch the app using the "Trusted Referer" configuration, which runs locally at port 44300 
+
 <img src="docs/TrustedReferer.png" alt="drawing" width="200"/>
+
 * click the **Get Certs** and **Attest** buttons
 * observe the results of success requests to MAA
 <img src="docs/Trusted.Run.png" alt="drawing" width="800"/>
@@ -25,7 +27,9 @@ In Visual Studio:
 In Visual Studio:
 
 * launch the app using the "Untrusted Referer" configuration, which runs locally at port 44200
+
 <img src="docs/Untrusted.Referer.png" alt="drawing" width="200"/>
+
 * click the **Get Certs** and **Attest** buttons
 * observe the results of success requests to MAA
 <img src="docs/Untrusted.Run.png" alt="drawing" width="800"/>

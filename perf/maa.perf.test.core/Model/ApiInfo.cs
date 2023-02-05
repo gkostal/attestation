@@ -1,7 +1,8 @@
-﻿using Newtonsoft.Json;
-
-namespace maa.perf.test.core.Model
+﻿namespace maa.perf.test.core.Model
 {
+    using Newtonsoft.Json;
+    using System.Collections.Generic;
+
     [JsonObject(MemberSerialization.OptIn)]
     public class ApiInfo
     {
@@ -12,6 +13,11 @@ namespace maa.perf.test.core.Model
             ServicePort = "";
             UseHttp = false;
             Url = string.Empty;
+            Headers = string.Empty;
+            PostUrl = string.Empty;
+            PostFile = string.Empty;
+            PutUrl = string.Empty;
+            PutFile = string.Empty;
         }
 
         [JsonProperty]
@@ -24,5 +30,32 @@ namespace maa.perf.test.core.Model
         public bool UseHttp { get; set; }
         [JsonProperty]
         public string Url { get; set; }
+        [JsonProperty]
+        public string Headers { get; set; }
+        [JsonProperty]
+        public string PostUrl { get; set; }
+        [JsonProperty]
+        public string PostFile { get; set; }
+        [JsonProperty]
+        public string PutUrl { get; set; }
+        [JsonProperty]
+        public string PutFile { get; set; }
+
+        public Dictionary<string, string> HeadersAsDictionary()
+        {
+            var allHeaders = new Dictionary<string, string>();
+
+            if (!string.IsNullOrEmpty(this.Headers))
+            {
+                var theHeaders = this.Headers.Split(';');
+                foreach (var singleHeader in theHeaders)
+                {
+                    var theHeaderComponents = singleHeader.Split('=');
+                    allHeaders[theHeaderComponents[0]] = theHeaderComponents[1];
+                }
+            }
+
+            return allHeaders;
+        }
     }
 }

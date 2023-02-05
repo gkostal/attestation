@@ -1,14 +1,14 @@
-﻿using maa.perf.test.core.Model;
-using maa.perf.test.core.Utils;
-
-namespace maa.perf.test.core.Maa.Preview
+﻿namespace maa.perf.test.core.Maa.Preview
 {
+    using maa.perf.test.core.Model;
+    using maa.perf.test.core.Utils;
+
     public class AttestTeeOpenEnclaveRequestBody
     {
         public AttestTeeOpenEnclaveRequestBody(EnclaveInfo enclaveInfo)
         {
-            Quote = HexHelper.ConvertHexToBase64Url(enclaveInfo.QuoteHex);
-            EnclaveHeldData = HexHelper.ConvertHexToBase64Url(enclaveInfo.EnclaveHeldDataHex);
+            Quote = enclaveInfo.Quote;
+            EnclaveHeldData = enclaveInfo.EnclaveHeldData;
         }
         public string Quote { get; set; }
         public string EnclaveHeldData { get; set; }

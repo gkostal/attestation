@@ -13,20 +13,21 @@ namespace maa.perf.test.core.Utils
         {
             OpenFileIfNeeded(metrics);
 
-            string csvLine = string.Format("{0}, {1}, {2,22}, {3,8}, {4,5:f0}, {5,5:f1}, {6,5}, {7,5}, {8,5}, {9,5}, {10,5}, {11,5}, {12,5}",
-                metrics.ResourceDescription,
-                metrics.TestDescription,
-                metrics.EndTime.ToString(),
-                metrics.Count,
-                metrics.RPS,
-                metrics.CpuPercentage,
-                metrics.AverageLatencyMS,
-                metrics.Percentile50,
-                metrics.Percentile90,
-                metrics.Percentile95,
-                metrics.Percentile99,
-                metrics.Percentile995,
-                metrics.Percentile999);
+            string csvLine = string.Format("{0}, {1}, {2,22}, {3,8}, {4,5:f0}, {13,5:f0}, {5,5:f1}, {6,5}, {7,5}, {8,5}, {9,5}, {10,5}, {11,5}, {12,5}",
+                metrics.ResourceDescription,      // 0
+                metrics.TestDescription,          // 1
+                metrics.EndTime.ToString(),       // 2
+                metrics.Count,                    // 3
+                metrics.RPS,                      // 4
+                metrics.CpuPercentage,            // 5
+                metrics.AverageLatencyMS,         // 6
+                metrics.Percentile50,             // 7
+                metrics.Percentile90,             // 8
+                metrics.Percentile95,             // 9
+                metrics.Percentile99,             // 10
+                metrics.Percentile995,            // 11
+                metrics.Percentile999,            // 12
+                metrics.TotalThrottledRequests);  // 13
 
             lock (_lock)
             {
@@ -62,6 +63,7 @@ namespace maa.perf.test.core.Utils
                                               "\"IntervalTime\"," +
                                               "\"Count\"," +
                                               "\"RPS\"," +
+                                              "\"TRPS\"," +
                                               "\"CPU\"," +
                                               "\"AverageLatency\"," +
                                               "\"P50\"," +

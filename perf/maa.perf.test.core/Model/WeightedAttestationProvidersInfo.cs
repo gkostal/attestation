@@ -1,7 +1,7 @@
-﻿using Newtonsoft.Json;
-
-namespace maa.perf.test.core.Model
+﻿namespace maa.perf.test.core.Model
 {
+    using Newtonsoft.Json;
+
     [JsonObject(MemberSerialization.OptIn)]
     public class WeightedAttestationProvidersInfo : AttestationProvidersInfo, IWeightedObject
     {

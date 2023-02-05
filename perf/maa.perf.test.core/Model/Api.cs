@@ -5,19 +5,20 @@
         None,
         // Attest
         AttestSgxEnclave,       // Preview, GA
-        AttestVsmEnclave,       // Preview
-        AttestVbsEnclave,       // Preview
         AttestTeeSgxEnclave,    // Preview
         AttestTeeOpenEnclave,   // Preview
-        AttestTeeVsmEnclave,    // Preview
-        AttestTeeVbsEnclave,    // Preview
+        AttestTeeSevSnpVm,      // Preview
+        AttestTeeAzureGuest,    // Preview
         AttestOpenEnclave,      // GA
         AttestSevSnpVm,         // GA
-        AttestTpm,              // GA
+        AttestSevSnpVmUvm,      // GA
+        AttestAzureGuest,       // GA
         // JWT validation
         GetOpenIdConfiguration, // Preview, GA
         GetCerts,               // Preview, GA
         // Other
-        GetServiceHealth        // GA
+        GetServiceHealth,       // GA
+        GetPolicy,              // GA
+        SetPolicy,              // GA
     };
 }

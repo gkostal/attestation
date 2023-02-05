@@ -1,8 +1,9 @@
-﻿using maa.perf.test.core.Model;
-using maa.perf.test.core.Utils;
-
-namespace maa.perf.test.core.Maa.Ga
+﻿namespace maa.perf.test.core.Maa.Ga
 {
+    using maa.perf.test.core.Model;
+    using maa.perf.test.core.Utils;
+    using System.Linq;
+
     public class AttestSgxEnclaveRequestBody
     {
         public class AttestedData
@@ -13,10 +14,10 @@ namespace maa.perf.test.core.Maa.Ga
 
         public AttestSgxEnclaveRequestBody(EnclaveInfo enclaveInfo)
         {
-            Quote = HexHelper.ConvertHexToBase64Url(enclaveInfo.QuoteHex, 16);
+            Quote = Base64Url.EncodeBytes(Base64Url.DecodeBytes(enclaveInfo.Quote).Skip(16).ToArray());
             RuntimeData = new AttestedData()
             {
-                Data = HexHelper.ConvertHexToBase64Url(enclaveInfo.EnclaveHeldDataHex),
+                Data = enclaveInfo.EnclaveHeldData,
                 DataType = "Binary"
             };
         }

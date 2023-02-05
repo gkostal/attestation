@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using maa.perf.test.core.Model;
-
-namespace maa.perf.test.core.Utils
+﻿namespace maa.perf.test.core.Utils
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using maa.perf.test.core.Model;
+
     public class AsyncFor
     {
         #region Public
@@ -44,6 +44,7 @@ namespace maa.perf.test.core.Utils
             _lastReportTime = DateTime.Now;
             _intervalLatencyTimes = new ConcurrentDictionary<int, int>();
             _totalCpuPercentageReported = 0.0;
+            _totalThrottledRequests = 0;
             _perMinuteMetrics = null;
         }
 
@@ -52,17 +53,17 @@ namespace maa.perf.test.core.Utils
         {
         }
 
-        public async Task ForAsync(TimeSpan totalDuration, long maxSimultaneousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction, CancellationToken cancellationToken)
+        public async Task ForAsync(TimeSpan totalDuration, long maxSimultaneousAwaits, Func<Task<ServiceResponse>> asyncWorkerFunction, CancellationToken cancellationToken)
         {
             await ForAsync(() => _timer.Elapsed <= totalDuration, maxSimultaneousAwaits, asyncWorkerFunction, cancellationToken);
         }
 
-        public async Task ForAsync(long totalIterations, long maxSimultaneousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction, CancellationToken cancellationToken)
+        public async Task ForAsync(long totalIterations, long maxSimultaneousAwaits, Func<Task<ServiceResponse>> asyncWorkerFunction, CancellationToken cancellationToken)
         {
             await ForAsync(() => _currentCount <= totalIterations, maxSimultaneousAwaits, asyncWorkerFunction, cancellationToken);
         }
 
-        public async Task ForAsync(Func<bool> shouldContinue, long maxSimultaneousAwaits, Func<Task<PerformanceInformation>> asyncWorkerFunction, CancellationToken cancellationToken)
+        public async Task ForAsync(Func<bool> shouldContinue, long maxSimultaneousAwaits, Func<Task<ServiceResponse>> asyncWorkerFunction, CancellationToken cancellationToken)
         {
             _timer.Start();
             _throttlingTimer.Start();
@@ -122,10 +123,11 @@ namespace maa.perf.test.core.Utils
                     var recentLatencyTimes = Interlocked.Exchange(ref _intervalLatencyTimes,
                         new ConcurrentDictionary<int, int>());
                     var recentCpuPercentageReported = Interlocked.Exchange(ref _totalCpuPercentageReported, 0.0);
+                    var recentThrottledRequests = Interlocked.Exchange(ref _totalThrottledRequests, 0);
 
                     // Calculate one second interval metrics
                     IntervalMetrics m = InitPerSecondIntervalMetric(currentTimeSnapshot,
-                        currentTimeSnapshot - _lastReportTime, recentLatencyTimes, recentCpuPercentageReported);
+                        currentTimeSnapshot - _lastReportTime, recentLatencyTimes, recentCpuPercentageReported, recentThrottledRequests);
                     PopulateExtendedMetrics?.Invoke(m);
                     PerSecondMetricsAvailable?.Invoke(m);
 
@@ -180,7 +182,7 @@ namespace maa.perf.test.core.Utils
             );
         }
 
-        private IntervalMetrics InitPerSecondIntervalMetric(DateTime currentTimeSnapshot, TimeSpan duration, ConcurrentDictionary<int, int> recentLatencyTimes, double recentCpuPercentageReported)
+        private IntervalMetrics InitPerSecondIntervalMetric(DateTime currentTimeSnapshot, TimeSpan duration, ConcurrentDictionary<int, int> recentLatencyTimes, double recentCpuPercentageReported, long recentThrottledRequests)
         {
             return new IntervalMetrics
             (
@@ -191,11 +193,12 @@ namespace maa.perf.test.core.Utils
                 Process.GetCurrentProcess().Id,
                 _resourceDescription,
                 recentLatencyTimes,
-                recentCpuPercentageReported
+                recentCpuPercentageReported,
+                recentThrottledRequests
             );
         }
 
-        private async Task InternalForAsync(Func<bool> shouldContinue, Func<Task<PerformanceInformation>> asyncWorkerFunction, CancellationToken cancellationToken)
+        private async Task InternalForAsync(Func<bool> shouldContinue, Func<Task<ServiceResponse>> asyncWorkerFunction, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref _runningTaskCount);
 
@@ -231,10 +234,10 @@ namespace maa.perf.test.core.Utils
                     // Do work measuring latency time
                     // *******************************
                     DateTime start = DateTime.Now;
-                    var perfInfo = await asyncWorkerFunction();
+                    var serviceResponse = await asyncWorkerFunction();
                     var clientMeasuredTime = (int) (DateTime.Now - start).TotalMilliseconds;
-                    var serverMeasuredTime = (int) perfInfo.Request.DurationMs;
-                    int latencyTime = (_measureServerSideTime && (serverMeasuredTime > 0))
+                    var serverMeasuredTime = (int) serviceResponse.PerfInfo.Request.DurationMs;
+                    int latencyTime = (_measureServerSideTime && !string.IsNullOrEmpty(serviceResponse.PerfInfo?.Machine?.MachineName))
                         ? serverMeasuredTime
                         : clientMeasuredTime;
 
@@ -242,7 +245,7 @@ namespace maa.perf.test.core.Utils
                     // Warn one time if server side 
                     // time is missing
                     // *******************************
-                    if (_measureServerSideTime && !_warnedOfMissingServerSideTime && (serverMeasuredTime <= 0))
+                    if (_measureServerSideTime && string.IsNullOrEmpty(serviceResponse.PerfInfo?.Machine?.MachineName) && !_warnedOfMissingServerSideTime)
                     {
                         Tracer.TraceWarning(
                             $"Server side time not available.  Measuring client side time instead of server side time.");
@@ -250,9 +253,17 @@ namespace maa.perf.test.core.Utils
                     }
 
                     // *******************************
+                    // Record throttled requests
+                    // *******************************
+                    if (serviceResponse.StatusCode == 429)
+                    {
+                        Interlocked.Increment(ref _totalThrottledRequests);
+                    }
+
+                    // *******************************
                     // Record CPU percentage (if known)
                     // *******************************
-                    AddToDoubleThreadSafe(perfInfo.Machine.Cpu.Total, ref _totalCpuPercentageReported);
+                    AddToDoubleThreadSafe(serviceResponse.PerfInfo.Machine.Cpu.Total, ref _totalCpuPercentageReported);
 
                     // *******************************
                     // Record latency time
@@ -290,7 +301,7 @@ namespace maa.perf.test.core.Utils
             catch (OperationCanceledException)
             {
                 // Don't throw exception when cancelled, just exit silently
-                Tracer.TraceInfo($"Organized shutdown in progress.  An async connection is exiting gracefully now.  {_runningTaskCount - 1} remaining.");
+                //Tracer.TraceInfo($"Organized shutdown in progress.  An async connection is exiting gracefully now.  {_runningTaskCount - 1} remaining.");
             }
             finally
             {
@@ -354,6 +365,7 @@ namespace maa.perf.test.core.Utils
         // Interval state
         private DateTime _lastReportTime;
         private ConcurrentDictionary<int, int> _intervalLatencyTimes;
+        private long _totalThrottledRequests;
         private double _totalCpuPercentageReported;
         private IntervalMetrics _perMinuteMetrics;
 

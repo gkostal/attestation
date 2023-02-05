@@ -1,4 +1,9 @@
 @if "%_ECHO%" EQU "" echo off
+
+rem
+rem Launch from parent directory 'script\run.parallel.prod.cmd'
+rem 
+
 SETLOCAL EnableDelayedExpansion
 
 set _RP_LAUNCH=dotnet run -- -p

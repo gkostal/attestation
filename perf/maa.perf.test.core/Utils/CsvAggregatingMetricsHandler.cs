@@ -75,15 +75,16 @@ namespace maa.perf.test.core.Utils
 
                 using (var fileWriter = File.AppendText(filePath))
                 {
-                    fileWriter.WriteLine("\"TotalRPS\"," +
+                    fileWriter.WriteLine("\"Connections\"," + 
+                                         "\"RPS\"," +
                                          "\"CPU\"," +
-                                         "\"Connections\"," +
+                                         "\"TotalRPS\"," +
                                          "\"ResourceDescription\"," +
                                          "\"TestDescription\"," +
                                          "\"DateTime\"," +
                                          "\"DurationSeconds\"," +
                                          "\"Count\"," +
-                                         "\"RPS\"," +
+                                         "\"TRPS\"," +
                                          "\"AverageLatency\"," +
                                          "\"P50\"," +
                                          "\"P90\"," +
@@ -101,16 +102,17 @@ namespace maa.perf.test.core.Utils
                         var metrics = _testRunMetrics[key];
                         var finalMetric = new IntervalMetrics(metrics.TheIntervalMetrics, metrics.MinTime, metrics.MaxTime - metrics.MinTime + TimeSpan.FromSeconds(1));
 
-                        var csvLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14},{15}",
-                            key.Item1,
-                            finalMetric.CpuPercentage,
+                        var csvLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14},{15},{16}",
                             key.Item2,
+                            finalMetric.RPS,
+                            finalMetric.CpuPercentage,
+                            key.Item1,
                             finalMetric.ResourceDescription,
                             finalMetric.TestDescription,
                             finalMetric.EndTime.ToString(),
                             finalMetric.Duration.TotalSeconds,
                             finalMetric.Count,
-                            finalMetric.RPS,
+                            finalMetric.TotalThrottledRequests,
                             finalMetric.AverageLatencyMS,
                             finalMetric.Percentile50,
                             finalMetric.Percentile90,

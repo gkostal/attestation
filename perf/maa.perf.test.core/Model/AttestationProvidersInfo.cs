@@ -1,15 +1,12 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-
-namespace maa.perf.test.core.Model
+﻿namespace maa.perf.test.core.Model
 {
+    using Newtonsoft.Json;
+    using System.Collections.Generic;
+
     [JsonObject(MemberSerialization.OptIn)]
     public class AttestationProvidersInfo : AttestationProviderInfo
     {
-        const string TenantNameRegEx = @"(\D*)(\d*)";
-        const string ProviderDnsNameRegEx = @"((\D+\d*\D+)\d+[.]?)(.*)";
+        private List<AttestationProviderInfo> expandedProviders;
 
         public AttestationProvidersInfo()
         {
@@ -21,26 +18,32 @@ namespace maa.perf.test.core.Model
 
         public List<AttestationProviderInfo> GetAttestationProviders()
         {
-            List<AttestationProviderInfo> providers = new List<AttestationProviderInfo>();
-
-            if (ProviderCount > 1)
+            if (expandedProviders == null)
             {
-                var (dnsNameBase, dnsSubDomain, tenantNameBase) = ExtractBaseNames();
-                for (int i = 0; i < ProviderCount; i++)
+                List<AttestationProviderInfo> providers = new List<AttestationProviderInfo>();
+
+                if (ProviderCount > 1)
                 {
-                    providers.Add(CreateRangedProviderInfo(i, dnsNameBase, dnsSubDomain, tenantNameBase));
+                    var (dnsNameBase, dnsSubDomain, tenantNameBase) = ExtractBaseNames();
+                    for (int i = 0; i < ProviderCount; i++)
+                    {
+                        providers.Add(CreateRangedProviderInfo(i, dnsNameBase, dnsSubDomain, tenantNameBase));
+                    }
                 }
-            }
-            else
-            {
-                providers.Add(new AttestationProviderInfo()
+                else
                 {
-                    DnsName = DnsName,
-                    TenantNameOverride = TenantNameOverride
-                });
+                    providers.Add(new AttestationProviderInfo()
+                    {
+                        DnsName = DnsName,
+                        IpAddress = IpAddress,
+                        TenantNameOverride = TenantNameOverride
+                    });
+                }
+
+                expandedProviders = providers;
             }
 
-            return providers;
+            return expandedProviders;
         }
 
         private AttestationProviderInfo CreateRangedProviderInfo(int index, string dnsNameBase, string dnsSubDomain, string tenantNameBase)
@@ -53,27 +56,6 @@ namespace maa.perf.test.core.Model
                 DnsName = dnsName,
                 TenantNameOverride = tenantNameOverride
             };
-        }
-
-        private (string, string, string) ExtractBaseNames()
-        {
-            var dnsNameBase = string.Empty;
-            var dnsSubDomain = string.Empty;
-            var tenantNameOverrideBase = string.Empty;
-
-            if (!this.DnsName.Equals("localhost", StringComparison.InvariantCultureIgnoreCase))
-            {
-                var pre = Regex.Match(this.DnsName, ProviderDnsNameRegEx);
-                dnsNameBase = pre.Groups[2].Value;
-                dnsSubDomain = $".{pre.Groups[3].Value}";
-            }
-            if (!string.IsNullOrEmpty(this.TenantNameOverride))
-            {
-                var tre = Regex.Match(this.TenantNameOverride, TenantNameRegEx);
-                tenantNameOverrideBase = tre.Groups[1].Value;
-            }
-
-            return (dnsNameBase, dnsSubDomain, tenantNameOverrideBase);
         }
     }
 }

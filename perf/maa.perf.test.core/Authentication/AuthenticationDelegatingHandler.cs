@@ -13,7 +13,7 @@ namespace maa.perf.test.core.Authentication
     public class AuthenticationDelegatingHandler : DelegatingHandler
     {
         private readonly Dictionary<string, string> TenantLookup;
-        private const string TenantLookupFileName = "tenantlookup.bin";
+        private const string TenantLookupFileName = "tenantlookup.acache";
         private const string ProviderDnsNameRegEx = @"((\D+\d*\D+)\d+[.]?)(.*)";
 
         public AuthenticationDelegatingHandler()

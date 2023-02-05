@@ -21,13 +21,15 @@ namespace maa.perf.test.core
         private MixInfo _mixInfo;
         private Kaboom _kaboom;
         private readonly List<AsyncFor> _asyncForInstances = new List<AsyncFor>();
-        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private readonly CancellationTokenSource _masterCancellationTokenSource = new CancellationTokenSource();
 
         public static void Main(string[] args)
         {
             ServicePointManager.DefaultConnectionLimit = 1024 * 32;
+            ServicePointManager.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
 
-            Parser.Default.ParseArguments<Options>(args)
+            var parser = new Parser((s) => { s.HelpWriter = new ApiHelpWriter(); });
+            parser.ParseArguments<Options>(args)
                 .WithParsed<Options>(o =>
                 {
                     new Program(o).RunAsync().Wait();
@@ -42,13 +44,21 @@ namespace maa.perf.test.core
                 _options.RestApi = Api.AttestSgxEnclave;
             }
 
-            Tracer.CurrentTracingLevel = _options.Verbose ? TracingLevel.Verbose : TracingLevel.Info;
+            Tracer.CurrentTracingLevel = _options.Verbose ? TracingLevel.Verbose : _options.Silent ? TracingLevel.Warning : TracingLevel.Info;
         }
 
         public async Task RunAsync()
         {
-            // Complete all HTTP conversations before exiting application
-            Console.CancelKeyPress += HandleControlC;
+            var testRunIndex = 0;
+
+            // Trace raw options in verbose mode
+            _options.Trace();
+
+            if (_options.GracefulTermination)
+            {
+                // Complete all HTTP conversations before exiting application
+                Console.CancelKeyPress += HandleControlC;
+            }
 
             // Retrieve all run configuration settings
             _mixInfo = _options.GetMixInfo();
@@ -56,69 +66,97 @@ namespace maa.perf.test.core
 
             using (var uberCsvAggregator = new CsvAggregatingMetricsHandler())
             {
-                for (var i = 0; i < _mixInfo.TestRuns.Count && !_cancellationTokenSource.IsCancellationRequested; i++)
+
+                // Outer loop - each test run defined in JSON
+                for (var i = 0; i < _mixInfo.TestRuns.Count && !_masterCancellationTokenSource.IsCancellationRequested; i++)
                 {
                     var testRunInfo = _mixInfo.TestRuns[i];
-                    var asyncRunners = new List<Task>();
 
-                    uberCsvAggregator.SetRpsAndConnections(testRunInfo.TargetRPS, testRunInfo.SimultaneousConnections);
-
-                    Tracer.TraceInfo("");
-                    Tracer.TraceInfo($"Starting test run #{i}   RPS: {testRunInfo.TargetRPS}  Connections: {testRunInfo.SimultaneousConnections}");
-
-                    // Handle ramp up if needed
-                    await RampUpAsync(testRunInfo);
-
-                    // Initiate separate asyncfor for each API in the mix
-                    if (!_cancellationTokenSource.IsCancellationRequested)
+                    // Inner loop - iterate over all connection counts specified in a single test run
+                    do
                     {
-                        foreach (var apiInfo in _mixInfo.ApiMix)
+                        // Bump test run counters
+                        testRunIndex++;
+
+                        var asyncRunners = new List<Task>();
+
+                        uberCsvAggregator.SetRpsAndConnections(testRunInfo.TargetRPS, testRunInfo.SimultaneousConnections);
+
+                        Tracer.TraceInfo("");
+                        Tracer.TraceInfo($"Starting test run #{testRunIndex}   RPS: {testRunInfo.TargetRPS}  Connections: {testRunInfo.SimultaneousConnections}");
+
+                        // Handle ramp up if needed
+                        await RampUpAsync(testRunInfo);
+
+                        // Create a timed unique cancellation source for each test run that times out 1 seconds after the desired completion time.
+                        // This means outstanding requests to MAA are aborted after 1 seconds of additional waiting.
+                        var testRunCancellationSource = new CancellationTokenSource();
+                        if (testRunInfo.TestTimeSeconds < int.MaxValue)
                         {
-                            var myFor = new AsyncFor(testRunInfo.TargetRPS * apiInfo.Percentage, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo), testRunInfo.MeasureServerSideTime);
-                            if (_mixInfo.ApiMix.Count > 1)
+                            testRunCancellationSource.CancelAfter(TimeSpan.FromSeconds(testRunInfo.TestTimeSeconds + 1));
+                        }
+                        var linkedTestRunCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(_masterCancellationTokenSource.Token, testRunCancellationSource.Token);
+
+                        // Initiate separate asyncfor for each API in the mix
+                        if (!_masterCancellationTokenSource.IsCancellationRequested)
+                        {
+                            foreach (var apiInfo in _mixInfo.ApiMix)
                             {
-                                myFor.PerSecondMetricsAvailable += new ConsoleAggregatingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
+                                var myFor = new AsyncFor(testRunInfo.TargetRPS * apiInfo.Percentage, GetResourceDescription(apiInfo, _mixInfo), GetTestDescription(apiInfo), testRunInfo.MeasureServerSideTime);
+
+                                // Console logger
+                                if (_mixInfo.ApiMix.Count > 1)
+                                {
+                                    myFor.PerSecondMetricsAvailable += new ConsoleAggregatingMetricsHandler(_mixInfo.ApiMix.Count, 60).MetricsAvailableHandler;
+                                }
+                                else
+                                {
+                                    myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
+                                }
+
+                                // CSV logger
+                                if (testRunInfo.TestTimeSeconds != int.MaxValue)
+                                {
+                                    myFor.PerSecondMetricsAvailable += uberCsvAggregator.MetricsAvailableHandler;
+                                }
+                                else
+                                {
+                                    myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
+                                }
+
+                                _asyncForInstances.Add(myFor);
+                                asyncRunners.Add(myFor.ForAsync(
+                                    TimeSpan.FromSeconds(testRunInfo.TestTimeSeconds),
+                                    testRunInfo.SimultaneousConnections,
+                                    new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects, apiInfo.HeadersAsDictionary(), linkedTestRunCancellationSource.Token).CallApi,
+                                    linkedTestRunCancellationSource.Token));
+                            }
+                        }
+
+                        // Wait for all to be complete (happens when they finish or crtl-c is hit)
+                        try
+                        {
+                            await Task.WhenAll(asyncRunners.ToArray());
+                        }
+                        catch (TaskCanceledException)
+                        {
+                            // Ignore task cancelled if we requested cancellation via ctrl-c
+                            if (_masterCancellationTokenSource.IsCancellationRequested)
+                            {
+                                //Tracer.TraceInfo(($"Organized shutdown in progress.  All {asyncRunners.Count} asyncfor instances have gracefully shutdown."));
                             }
                             else
                             {
-                                myFor.PerSecondMetricsAvailable += new ConsoleMetricsHandler().MetricsAvailableHandler;
+                                throw;
                             }
-
-                            myFor.PerSecondMetricsAvailable += new CsvFileMetricsHandler().MetricsAvailableHandler;
-                            if (testRunInfo.TestTimeSeconds != int.MaxValue)
-                            {
-                                myFor.PerSecondMetricsAvailable += uberCsvAggregator.MetricsAvailableHandler;
-                            }
-
-                            _asyncForInstances.Add(myFor);
-                            asyncRunners.Add(myFor.ForAsync(
-                                TimeSpan.FromSeconds(testRunInfo.TestTimeSeconds), 
-                                testRunInfo.SimultaneousConnections, 
-                                new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects).CallApi,
-                                _cancellationTokenSource.Token));
                         }
-                    }
 
-                    // Wait for all to be complete (happens when they finish or crtl-c is hit)
-                    try
-                    {
-                        await Task.WhenAll(asyncRunners.ToArray());
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        // Ignore task cancelled if we requested cancellation via ctrl-c
-                        if (_cancellationTokenSource.IsCancellationRequested)
-                        {
-                            Tracer.TraceInfo(($"Organized shutdown in progress.  All {asyncRunners.Count} asyncfor instances have gracefully shutdown."));
-                        }
-                        else
-                        {
-                            throw;
-                        }
-                    }
+                        //Tracer.TraceInfo("");
+                        Tracer.TraceInfo($"Completed test run #{testRunIndex}   RPS: {testRunInfo.TargetRPS}  Connections: {testRunInfo.SimultaneousConnections}");
 
-                    //Tracer.TraceInfo("");
-                    Tracer.TraceInfo($"Completed test run #{i}   RPS: {testRunInfo.TargetRPS}  Connections: {testRunInfo.SimultaneousConnections}");
+                        // Update simultaneous connection count
+                        testRunInfo.SimultaneousConnections += testRunInfo.SimultaneousConnectionsDelta;
+                    } while (testRunInfo.SimultaneousConnections <= testRunInfo.SimultaneousConnectionsMaxConnections && !_masterCancellationTokenSource.IsCancellationRequested);
                 }
             }
             Tracer.TraceInfo($"Organized shutdown complete.");
@@ -130,7 +168,7 @@ namespace maa.perf.test.core
         private async Task RampUpAsync(TestRunInfo testRunInfo)
         {
             // Handle ramp up if defined
-            if (testRunInfo.RampUpTimeSeconds > 4 && !_cancellationTokenSource.IsCancellationRequested)
+            if (testRunInfo.RampUpTimeSeconds > 4 && !_masterCancellationTokenSource.IsCancellationRequested)
             {
                 Tracer.TraceInfo($"Ramping up starts.");
 
@@ -139,7 +177,7 @@ namespace maa.perf.test.core
                 int numberIntervals = Math.Min(testRunInfo.RampUpTimeSeconds / 5, 6);
                 TimeSpan intervalLength = (endTime - startTime) / numberIntervals;
                 double intervalRpsDelta = ((double)testRunInfo.TargetRPS) / ((double)numberIntervals);
-                for (int i = 0; i < numberIntervals && !_cancellationTokenSource.IsCancellationRequested; i++)
+                for (int i = 0; i < numberIntervals && !_masterCancellationTokenSource.IsCancellationRequested; i++)
                 {
                     var apiInfo = _mixInfo.ApiMix[i % _mixInfo.ApiMix.Count];
 
@@ -155,15 +193,15 @@ namespace maa.perf.test.core
                         await myRampUpFor.ForAsync(
                             intervalLength,
                             testRunInfo.SimultaneousConnections,
-                            new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects).CallApi,
-                            _cancellationTokenSource.Token);
+                            new MaaServiceApiCaller(apiInfo, _mixInfo.ProviderMix, testRunInfo.EnclaveInfoFile, testRunInfo.ForceReconnects, apiInfo.HeadersAsDictionary(), _masterCancellationTokenSource.Token).CallApi,
+                            _masterCancellationTokenSource.Token);
                     }
                     catch (TaskCanceledException)
                     {
                         // Ignore task cancelled if we requested cancellation via ctrl-c
-                        if (_cancellationTokenSource.IsCancellationRequested)
+                        if (_masterCancellationTokenSource.IsCancellationRequested)
                         {
-                            Tracer.TraceInfo(($"Organized shutdown in progress.  All asyncfor instances have gracefully shutdown."));
+                            //Tracer.TraceInfo(($"Organized shutdown in progress.  All asyncfor instances have gracefully shutdown."));
                         }
                         else
                         {
@@ -177,9 +215,9 @@ namespace maa.perf.test.core
 
         private string GetResourceDescription(ApiInfo apiInfo, MixInfo mixInfo)
         {
-            if (string.IsNullOrEmpty(apiInfo.Url))
+            if ((string.IsNullOrEmpty(apiInfo.Url)) && (string.IsNullOrEmpty(apiInfo.PostUrl)) && (string.IsNullOrEmpty(apiInfo.PutUrl)))
             {
-                var description = mixInfo.ProviderMix[0].DnsName;
+                var description = mixInfo.ProviderMix[0].IpAddress ?? mixInfo.ProviderMix[0].DnsName;
                 var totalProviderCount = mixInfo.ProviderMix.Sum(p => p.ProviderCount);
 
                 if (totalProviderCount > 1)
@@ -191,17 +229,31 @@ namespace maa.perf.test.core
             }
             else
             {
-                return apiInfo.Url;
+                if (!string.IsNullOrEmpty(apiInfo.Url)) return apiInfo.Url;
+                if (!string.IsNullOrEmpty(apiInfo.PostUrl)) return apiInfo.PostUrl;
+                if (!string.IsNullOrEmpty(apiInfo.PutUrl)) return apiInfo.PutUrl;
+                
+                throw new Exception("Unexpected failure analyzing GET/POST/PUT Urls");
             }
         }
 
         private string GetTestDescription(ApiInfo apiInfo)
         {
-            return string.IsNullOrEmpty(apiInfo.Url) ? apiInfo.ApiName.ToString() : "GetUrl";
+            if (!string.IsNullOrEmpty(apiInfo.Url))
+                return "GetUrl";
+
+            if (!string.IsNullOrEmpty(apiInfo.PostUrl))
+                return "PostUrl";
+
+            if (!string.IsNullOrEmpty(apiInfo.PutUrl))
+                return "PutUrl";
+
+            return apiInfo.ApiName.ToString();
         }
 
         private void HandleControlC(object sender, ConsoleCancelEventArgs e)
         {
+            Tracer.CurrentTracingLevel = TracingLevel.Info;
             Tracer.TraceInfo("");
             Tracer.TraceInfo($"Organized shutdown starting.  Informing {_asyncForInstances.Count} asyncfor instances to terminate.");
 
@@ -209,7 +261,7 @@ namespace maa.perf.test.core
             e.Cancel = true;
 
             // Instead, tell all asyncfor tasks to cancel their work now
-            _cancellationTokenSource.Cancel();
+            _masterCancellationTokenSource.Cancel();
 
             // Don't wait longer than 10 seconds
             if (_kaboom == null)

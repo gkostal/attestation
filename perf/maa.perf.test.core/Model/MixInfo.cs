@@ -1,9 +1,9 @@
-﻿using maa.perf.test.core.Utils;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace maa.perf.test.core.Model
+﻿namespace maa.perf.test.core.Model
 {
+    using maa.perf.test.core.Utils;
+    using System.Collections.Generic;
+    using System.Linq;
+
     public class MixInfo
     {
         public MixInfo()
@@ -25,7 +25,7 @@ namespace maa.perf.test.core.Model
 
             if (!string.IsNullOrEmpty(mixFileName))
             {
-                mixFileContents = SerializationHelper.ReadFromFile<MixInfo>(mixFileName);
+                mixFileContents = SerializationHelper.ReadFromFileCached<MixInfo>(mixFileName);
                 var totalApiWeight = mixFileContents.ApiMix?.Sum(a => a.Weight);
                 var totalProviderWeight = mixFileContents.ProviderMix?.Sum(p => p.Weight);
 
@@ -57,7 +57,7 @@ namespace maa.perf.test.core.Model
             for (int i = 0; i < ApiMix.Count; i++)
             {
                 var ai = ApiMix[i];
-                Tracer.TraceInfo($"    API called #{i,-5}  Percentage: {ai.Percentage * 100.0d,-5}  Value: {(string.IsNullOrEmpty(ai.Url) ? ai.ApiName.ToString() : ai.Url)}");
+                Tracer.TraceInfo($"    API called #{i,-5}  Percentage: {ai.Percentage * 100.0d,-5}  Value: {(string.IsNullOrEmpty(ai.Url) ? ai.ApiName.ToString() : ai.Url)}  Headers: {ai.Headers}");
             }
 
             Tracer.TraceInfo($"");
@@ -65,7 +65,7 @@ namespace maa.perf.test.core.Model
             for (int i = 0; i < ProviderMix.Count; i++)
             {
                 var pi = ProviderMix[i];
-                Tracer.TraceInfo($"    Provider info #{i,-5}  Percentage: {pi.Percentage * 100.0d,-5}  Name: {pi.DnsName,-44}   OverrideName: {pi.TenantNameOverride,-20}   Count: {pi.ProviderCount}");
+                Tracer.TraceInfo($"    Provider info #{i,-5}  Percentage: {pi.Percentage * 100.0d,-5}  Name: {pi.DnsName,-44}   IpAddress: {pi.IpAddress,-18}   OverrideName: {pi.TenantNameOverride,-20}   Count: {pi.ProviderCount}");
             }
 
             Tracer.TraceInfo($"");

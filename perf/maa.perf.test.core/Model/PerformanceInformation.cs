@@ -1,9 +1,9 @@
-﻿using maa.perf.test.core.Utils;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-
-namespace maa.perf.test.core.Model
+﻿namespace maa.perf.test.core.Model
 {
+    using maa.perf.test.core.Utils;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Serialization;
+
     public class PerformanceInformation
     {
         public MachineInformation Machine { get; set; } = new MachineInformation();

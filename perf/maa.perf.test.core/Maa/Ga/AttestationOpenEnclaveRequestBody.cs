@@ -1,8 +1,8 @@
-﻿using maa.perf.test.core.Model;
-using maa.perf.test.core.Utils;
-
-namespace maa.perf.test.core.Maa.Ga
+﻿namespace maa.perf.test.core.Maa.Ga
 {
+    using maa.perf.test.core.Model;
+    using maa.perf.test.core.Utils;
+
     public class AttestOpenEnclaveRequestBody
     {
         public class AttestedData
@@ -13,10 +13,10 @@ namespace maa.perf.test.core.Maa.Ga
 
         public AttestOpenEnclaveRequestBody(EnclaveInfo enclaveInfo)
         {
-            Report = HexHelper.ConvertHexToBase64Url(enclaveInfo.QuoteHex);
+            Report = enclaveInfo.Quote;
             RuntimeData = new AttestedData()
             {
-                Data = HexHelper.ConvertHexToBase64Url(enclaveInfo.EnclaveHeldDataHex),
+                Data = enclaveInfo.EnclaveHeldData,
                 DataType = "Binary"
             };
         }

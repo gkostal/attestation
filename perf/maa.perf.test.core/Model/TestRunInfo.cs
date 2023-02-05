@@ -5,6 +5,8 @@
         public TestRunInfo()
         {
             SimultaneousConnections = 5;
+            SimultaneousConnectionsDelta = -1;
+            SimultaneousConnectionsMaxConnections = -1;
             TargetRPS = 1;
             ForceReconnects = false;
             MeasureServerSideTime = false;
@@ -13,6 +15,10 @@
             EnclaveInfoFile = "./Quotes/enclave.info.release.json";
         }
         public long SimultaneousConnections { get; set; }
+
+        public long SimultaneousConnectionsDelta { get; set; }
+
+        public long SimultaneousConnectionsMaxConnections { get; set; }
 
         public double TargetRPS { get; set; }
 

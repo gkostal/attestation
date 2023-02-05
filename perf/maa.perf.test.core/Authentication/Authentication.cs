@@ -14,7 +14,7 @@ namespace maa.perf.test.core.Authentication
         private const string clientId = "1950a258-227b-4e31-a9cf-717495945fc2";
         private static readonly string[] scopes = new[] { "https://attest.azure.net/.default" };
 
-        private const string AcceleratedTokenCacheFileName = "acceleratedcache.bin";
+        private const string AcceleratedTokenCacheFileName = "acceleratedcache.acache";
         private static Dictionary<string, string> _acceleratedCache;
         private static SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 

@@ -12,14 +12,19 @@ namespace AasPolicyCertificates
     {
         static void Main(string[] args)
         {
+            var usePreviewApiVersion = (args.Length > 0 && args[0] == "preview") ? true : false;
+            var policyCertClaimName = usePreviewApiVersion ? "maa-policyCertificate" : "policyCertificate";
+            var resultDirPrefix = usePreviewApiVersion ? "api.version.preview" : "api.version.ga";
+
             var numOriginalTrustedCerts = 10;
             var numPossibleNewTrustedCerts = 20;
             var sourceDir = @"..\..\..\unsigned.data.for.test";
-            var resultsDir = @"..\..\..\signed.data.for.test";
+            var resultsDir = @"..\..\..\" + resultDirPrefix + @"\signed.data.for.test";
             var rawSourceDir = @"..\..\..\raw.unsigned.data.for.test";
-            var rawResultsDir = @"..\..\..\raw.signed.data.for.test";
+            var rawResultsDir = @"..\..\..\" + resultDirPrefix + @"\raw.signed.data.for.test";
 
             Directory.CreateDirectory(resultsDir);
+            Directory.CreateDirectory(rawResultsDir);
 
             // Generate sample PEM with a certificate chain
             var parentCert = CertificateUtils.CreateCertificateAuthorityCertificate($"CN=MyCaCertificate");
@@ -50,7 +55,7 @@ namespace AasPolicyCertificates
 
                 var exportedCert = cert.Export(X509ContentType.Cert);
                 string jwkToAdd = $"{{\"kty\":\"RSA\", \"x5c\":[\"{System.Convert.ToBase64String(exportedCert)}\"]}}";
-                string addCertBody = $"{{\"maa-policyCertificate\": {jwkToAdd}}}";
+                string addCertBody = $"{{\"{policyCertClaimName}\": {jwkToAdd}}}";
                 string certAddJwt = JwtUtils.GenerateSignedJsonWebToken(addCertBody, signingCert);
                 Console.WriteLine($"Creating signed certificate file: cert{i}.signed.txt");
                 File.WriteAllText($"{resultsDir}\\cert{i}.signed.txt", certAddJwt);
@@ -63,7 +68,7 @@ namespace AasPolicyCertificates
                 var exportedLeafCert = leafCert.Export(X509ContentType.Cert);
 
                 string jwkToAdd = $"{{\"kty\":\"RSA\", \"x5c\":[\"{System.Convert.ToBase64String(exportedLeafCert)}\", \"{System.Convert.ToBase64String(exportedIntermediateCert)}\", \"{System.Convert.ToBase64String(exportedParentCert)}\"]}}";
-                string addCertBody = $"{{\"maa-policyCertificate\": {jwkToAdd}}}";
+                string addCertBody = $"{{\"{policyCertClaimName}\": {jwkToAdd}}}";
                 string certAddJwt = JwtUtils.GenerateSignedJsonWebToken(addCertBody, signingCert);
 
                 Console.WriteLine($"Creating signed certificate file with cert chain: cert.chain.signed.txt");

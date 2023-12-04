@@ -1,5 +1,6 @@
 namespace AasPolicyCertificates
 {
+    using Newtonsoft.Json.Linq;
     using System;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
@@ -22,14 +23,29 @@ namespace AasPolicyCertificates
             return encodedHeader + "." + encodedBody + "." + Base64Url.Encode(rawSignature);
         }
 
-        internal static string GenerateSignedPolicyJsonWebToken(string policyDocument, X509Certificate2[] signingCerts)
+        internal static string GenerateSignedPolicyJsonWebToken(string policyDocument, X509Certificate2[] signingCerts, bool isPreviewApiVersion)
+        {
+            var policyValue = isPreviewApiVersion ? policyDocument : Base64Url.Encode(policyDocument);
+            return GenerateSignedJsonWebToken(FormatPolicyBodyJson(policyValue), signingCerts);
+        }
+
+        internal static string FormatPolicyBody(string policyBody, bool isPreviewApiVersion)
+        {
+            if ((isPreviewApiVersion) || string.IsNullOrEmpty(policyBody))
+                return policyBody;
+
+            var attestationPolicy = JObject.Parse(policyBody)["AttestationPolicy"];
+            var base64UrlAttestationPolicy = Base64Url.Encode(attestationPolicy.ToString());
+            return FormatPolicyBodyJson(base64UrlAttestationPolicy);
+        }
+
+        private static string FormatPolicyBodyJson(string policyBody)
         {
             string jwtBody = "";
             jwtBody += "{";
-            jwtBody += $"\"AttestationPolicy\":\"{policyDocument}\"";
+            jwtBody += $"\"AttestationPolicy\":\"{policyBody}\"";
             jwtBody += "}";
-
-            return GenerateSignedJsonWebToken(jwtBody, signingCerts);
+            return jwtBody;
         }
 
         private static RSACryptoServiceProvider GetRsaSigner(X509Certificate2[] signingCerts)

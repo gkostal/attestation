@@ -81,7 +81,7 @@ namespace AasPolicyCertificates
                 var fileInfo = new FileInfo(file);
                 var encodedBody = File.ReadAllText(file).Split('.')[1];
                 var decodedBody = Encoding.UTF8.GetString(Base64Url.Decode(encodedBody));
-                var signedPolicyJwt = JwtUtils.GenerateSignedJsonWebToken(decodedBody, signingCert);
+                var signedPolicyJwt = JwtUtils.GenerateSignedJsonWebToken(JwtUtils.FormatPolicyBody(decodedBody, usePreviewApiVersion), signingCert);
                 Console.WriteLine($"Creating signed policy file: {fileInfo.Name}.signed{fileInfo.Extension}");
                 File.WriteAllText($"{resultsDir}\\{fileInfo.Name}.signed{fileInfo.Extension}", signedPolicyJwt);
             }
@@ -93,7 +93,7 @@ namespace AasPolicyCertificates
                 var policy = File.ReadAllText(file);
                 policy = policy.Replace("\n", @"\n");
                 policy = policy.Replace("\r", @"\r");
-                var signedPolicyJwt = JwtUtils.GenerateSignedPolicyJsonWebToken(policy, signingCert);
+                var signedPolicyJwt = JwtUtils.GenerateSignedPolicyJsonWebToken(policy, signingCert, usePreviewApiVersion);
                 Console.WriteLine($"Creating signed policy file: {fileInfo.Name}.signed{fileInfo.Extension}");
                 File.WriteAllText($"{rawResultsDir}\\{fileInfo.Name}.signed{fileInfo.Extension}", signedPolicyJwt);
             }
